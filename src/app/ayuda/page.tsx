@@ -1,0 +1,125 @@
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Phone, Mail, Clock } from "lucide-react";
+
+const faqs = [
+  {
+    q: "¿Qué es un “hold” o bloqueo de cupo?",
+    a: "Cuando eliges una hora, la reservamos temporalmente por 7 minutos. Si no completas el pago, el cupo se libera automáticamente.",
+  },
+  {
+    q: "¿En qué zona horaria se muestran las horas?",
+    a: "Todas las horas se muestran en America/Santiago para evitar confusiones.",
+  },
+  {
+    q: "¿Puedo cancelar o reagendar?",
+    a: "Sí. Las condiciones exactas dependen del servicio y la comuna. Te recomendamos revisar el correo de confirmación y escribirnos con tu ID de reserva.",
+  },
+  {
+    q: "¿Cómo protegen mis datos?",
+    a: "Usamos validación y sanitización de inputs, endpoints server-side y guardamos llaves solo en backend. Puedes solicitar eliminación de datos según política.",
+  },
+];
+
+export default function HelpPage() {
+  return (
+    <main className="bg-white min-h-screen pb-20 pt-8">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 space-y-12">
+
+        {/* Header */}
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl font-bold text-primary">Centro de Ayuda</h1>
+          <p className="text-xl text-gray-600">¿En qué podemos ayudarte hoy?</p>
+        </div>
+
+        {/* Contact Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="text-center hover:shadow-md transition-shadow">
+            <CardHeader>
+              <Phone className="w-8 h-8 mx-auto text-destructive mb-2" />
+              <CardTitle className="text-lg">Atención Telefónica</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 mb-2">Lunes a Viernes<br />9:00 - 18:00 hrs</p>
+              <p className="font-bold text-primary">+56 2 2345 6789</p>
+            </CardContent>
+          </Card>
+
+          <Card className="text-center hover:shadow-md transition-shadow">
+            <CardHeader>
+              <Mail className="w-8 h-8 mx-auto text-primary mb-2" />
+              <CardTitle className="text-lg">Soporte Email</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 mb-2">Consultas generales y reclamos</p>
+              <p className="font-bold text-primary">contacto@tprt.cl</p>
+            </CardContent>
+          </Card>
+
+          <Card className="text-center hover:shadow-md transition-shadow">
+            <CardHeader>
+              <Clock className="w-8 h-8 mx-auto text-secondary mb-2" />
+              <CardTitle className="text-lg">Horarios Plantas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-600 mb-2">Revisa el horario específico</p>
+              <Button variant="link" asChild className="p-0 h-auto font-bold text-primary">
+                <Link href="/plantas">Ver Plantas</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* FAQ Section */}
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold text-primary">Preguntas Frecuentes</h2>
+          <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="item-1">
+              <AccordionTrigger>¿Qué documentos debo presentar?</AccordionTrigger>
+              <AccordionContent>
+                Debe presentar el Certificado de Revisión Técnica anterior, Certificado de Emisiones Contaminantes y su Permiso de Circulación o Padrón.
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="item-2">
+              <AccordionTrigger>¿Qué pasa si mi revisión está vencida?</AccordionTrigger>
+              <AccordionContent>
+                Puede realizar la revisión normalmente, sin embargo, se expone a multas por circular con la documentación vencida.
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="item-3">
+              <AccordionTrigger>¿Cuánto demora el proceso?</AccordionTrigger>
+              <AccordionContent>
+                El proceso de inspección dura aproximadamente 20-30 minutos. Sin embargo, el tiempo total dependerá de la demanda en la planta. Recomendamos reservar hora.
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="item-4">
+              <AccordionTrigger>¿Cómo reservo una hora?</AccordionTrigger>
+              <AccordionContent>
+                Puede reservar en línea a través de nuestro sitio web en la sección <Link href="/reservar" className="text-primary underline">Reservar Hora</Link>.
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </div>
+
+        {/* Action Banner */}
+        <div className="bg-gray-50 border p-8 rounded-lg text-center space-y-4">
+          <h3 className="text-xl font-bold text-gray-800">¿No encontraste lo que buscabas?</h3>
+          <div className="flex justify-center gap-4">
+            <Button asChild>
+              <Link href="/reservar">Agendar Revisión</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href="/">Volver al Inicio</Link>
+            </Button>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  );
+}
+
