@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getEnv } from "@/lib/env";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { scheduleRemindersStub, sendBookingConfirmationEmail } from "@/lib/notifications/email";
+import { enqueueBookingPaidJobs, processDueNotificationJobs } from "@/lib/notifications/jobs";
 
 export const runtime = "nodejs";
 
@@ -60,8 +60,8 @@ export async function POST(req: Request) {
       .maybeSingle();
     const bookingId = payment.data?.booking_id;
     if (bookingId) {
-      await sendBookingConfirmationEmail(bookingId).catch(() => null);
-      await scheduleRemindersStub(bookingId).catch(() => null);
+      await enqueueBookingPaidJobs(bookingId).catch(() => null);
+      await processDueNotificationJobs({ limit: 10 }).catch(() => null);
     }
   }
 

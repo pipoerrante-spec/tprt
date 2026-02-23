@@ -6,7 +6,7 @@ Incluye:
 - Landing premium + wizard `/reservar` (servicio → comuna → calendario)
 - HOLD de cupo con TTL (default 7 min) + liberación automática por expiración
 - Checkout server-side + proveedor de pago `mock` E2E (con webhook local)
-- Provider interface preparado para Transbank Webpay (sin llaves en frontend)
+- Providers listos server-side: Transbank Webpay + Mercado Pago (sin llaves en frontend)
 - Confirmación `/confirmacion/[id]` + email stub (console)
 - Migraciones SQL listas para Supabase (`supabase/migrations`)
 
@@ -63,6 +63,19 @@ Notas:
 - `SUPABASE_SERVICE_ROLE_KEY` solo se usa en backend (route handlers). No se expone al cliente.
 - `TPRT_PAYMENTS_PROVIDER_ACTIVE=mock` habilita el flujo E2E local.
 - `TPRT_MOCK_WEBHOOK_SECRET` (opcional) exige header `x-tprt-mock-secret` en `/api/webhooks/mock`.
+- Emails reales: set `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM` y `OPERATIONS_EMAILS` (separados por coma).
+- Recordatorio 24h: se encola como `notification_jobs` y se procesa vía `/api/cron/notifications` (proteger con `TPRT_CRON_SECRET`).
+- Planilla: `TPRT_PLANILLA_WEBHOOK_URL` permite enviar un payload para Zapier/Make/Google Sheets al confirmar pago.
+- Patente → marca/modelo/año: endpoint `/api/vehicle/lookup` (configurable con `VEHICLE_LOOKUP_PROVIDER=http` + `VEHICLE_LOOKUP_HTTP_URL`).
+
+## Pagos (producción)
+
+- **Webpay (Transbank)**: configura `TRANSBANK_COMMERCE_CODE`, `TRANSBANK_API_KEY`, `TRANSBANK_ENV` y opcional `TRANSBANK_RETURN_SECRET`.
+  - El redirect se hace vía `/pago/webpay` (POST a Webpay con `token_ws`).
+  - El retorno/commit se procesa en `/api/webhooks/transbank`.
+- **Mercado Pago**: configura `MERCADOPAGO_ACCESS_TOKEN`.
+  - El checkout redirige a `init_point`.
+  - La confirmación del pago se procesa por notificación en `/api/webhooks/mercadopago`.
 
 ## Walkthrough de pruebas manuales (obligatorias)
 
@@ -102,4 +115,3 @@ Notas:
 - Implementar Webpay real (SDK oficial) dentro de `src/lib/payments/providers/transbank-webpay.ts`
 - Admin UI real `/admin` + Supabase Auth + claim `app_metadata.is_admin`
 - Recordatorios (cron/queue) para email/SMS/WhatsApp
-

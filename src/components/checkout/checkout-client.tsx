@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Clock, CreditCard, Shield } from "lucide-react";
+import { normalizePlate } from "@/lib/vehicle/plate";
 
 type HoldPublic = {
   id: string;
@@ -38,7 +39,15 @@ const formSchema = z.object({
   customerName: z.string().trim().min(2, "Ingresa tu nombre").max(80),
   email: z.string().trim().email("Email inválido").max(254),
   phone: z.string().trim().min(7, "Teléfono inválido").max(30),
-  vehiclePlate: z.string().trim().max(12).optional(),
+  vehiclePlate: z.string().trim().min(5, "Ingresa la patente").max(12),
+  vehicleMake: z.string().trim().min(2, "Ingresa la marca").max(40),
+  vehicleModel: z.string().trim().min(1, "Ingresa el modelo").max(60),
+  vehicleYear: z
+    .string()
+    .trim()
+    .max(4, "Año inválido")
+    .optional()
+    .refine((v) => !v || /^\d{4}$/.test(v), "Año inválido"),
   address: z.string().trim().min(5, "Ingresa una dirección").max(160),
   notes: z.string().trim().max(500).optional(),
   consentPrivacy: z.boolean().refine((v) => v === true, "Debes aceptar la política de privacidad"),
@@ -65,6 +74,9 @@ export function CheckoutClient({ holdId }: { holdId: string | null }) {
       email: "",
       phone: "",
       vehiclePlate: "",
+      vehicleMake: "",
+      vehicleModel: "",
+      vehicleYear: "",
       address: "",
       notes: "",
       consentPrivacy: false,
@@ -77,6 +89,33 @@ export function CheckoutClient({ holdId }: { holdId: string | null }) {
   const consentPrivacy = useWatch({ control: form.control, name: "consentPrivacy" });
   const consentSmsWhatsapp = useWatch({ control: form.control, name: "consentSmsWhatsapp" });
   const provider = useWatch({ control: form.control, name: "provider" });
+  const vehiclePlate = useWatch({ control: form.control, name: "vehiclePlate" });
+
+  const vehicleLookup = useMutation({
+    mutationFn: async (plate: string) =>
+      apiJson<{
+        vehicle: { plate: string; make: string | null; model: string | null; year: number | null; source: string };
+      }>("/api/vehicle/lookup", {
+        method: "POST",
+        body: JSON.stringify({ plate }),
+      }),
+    onSuccess: (data) => {
+      const v = data.vehicle;
+      if (v.make && !form.getValues("vehicleMake")) form.setValue("vehicleMake", v.make);
+      if (v.model && !form.getValues("vehicleModel")) form.setValue("vehicleModel", v.model);
+      if (typeof v.year === "number" && !form.getValues("vehicleYear")) form.setValue("vehicleYear", String(v.year));
+    },
+  });
+
+  React.useEffect(() => {
+    const normalized = normalizePlate(vehiclePlate || "");
+    if (normalized.length < 5) return;
+    const t = setTimeout(() => {
+      vehicleLookup.mutate(normalized);
+    }, 450);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehiclePlate]);
 
   const hold = useQuery({
     enabled: !!holdId,
@@ -120,7 +159,10 @@ export function CheckoutClient({ holdId }: { holdId: string | null }) {
           customerName: values.customerName,
           email: values.email,
           phone: values.phone,
-          vehiclePlate: values.vehiclePlate || null,
+          vehiclePlate: values.vehiclePlate,
+          vehicleMake: values.vehicleMake,
+          vehicleModel: values.vehicleModel,
+          vehicleYear: values.vehicleYear ? Number(values.vehicleYear) : null,
           address: values.address,
           notes: values.notes || null,
           provider: values.provider,
@@ -244,8 +286,39 @@ export function CheckoutClient({ holdId }: { holdId: string | null }) {
                 ) : null}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="vehiclePlate">Patente (opcional)</Label>
-                <Input id="vehiclePlate" placeholder="ABCD12" {...form.register("vehiclePlate")} />
+                <Label htmlFor="vehiclePlate">Patente</Label>
+                <Input
+                  id="vehiclePlate"
+                  placeholder="ABCD12"
+                  {...form.register("vehiclePlate", { setValueAs: (v) => normalizePlate(String(v ?? "")) })}
+                />
+                {vehicleLookup.isPending ? (
+                  <div className="text-xs text-muted-foreground">Detectando marca/modelo…</div>
+                ) : null}
+                {form.formState.errors.vehiclePlate ? (
+                  <div className="text-xs text-rose-200">{form.formState.errors.vehiclePlate.message}</div>
+                ) : null}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vehicleMake">Marca</Label>
+                <Input id="vehicleMake" placeholder="Toyota" {...form.register("vehicleMake")} />
+                {form.formState.errors.vehicleMake ? (
+                  <div className="text-xs text-rose-200">{form.formState.errors.vehicleMake.message}</div>
+                ) : null}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vehicleModel">Modelo</Label>
+                <Input id="vehicleModel" placeholder="Yaris" {...form.register("vehicleModel")} />
+                {form.formState.errors.vehicleModel ? (
+                  <div className="text-xs text-rose-200">{form.formState.errors.vehicleModel.message}</div>
+                ) : null}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vehicleYear">Año (opcional)</Label>
+                <Input id="vehicleYear" inputMode="numeric" placeholder="2018" {...form.register("vehicleYear")} />
+                {form.formState.errors.vehicleYear ? (
+                  <div className="text-xs text-rose-200">{form.formState.errors.vehicleYear.message}</div>
+                ) : null}
               </div>
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="address">Dirección</Label>
@@ -304,6 +377,7 @@ export function CheckoutClient({ holdId }: { holdId: string | null }) {
                     <TabsTrigger value="mock">Mock (local)</TabsTrigger>
                     <TabsTrigger value="transbank_webpay">Webpay</TabsTrigger>
                     <TabsTrigger value="flow">Flow</TabsTrigger>
+                    <TabsTrigger value="mercadopago">Mercado Pago</TabsTrigger>
                   </TabsList>
                   <TabsContent value="mock">
                     <div className="text-sm text-muted-foreground">
@@ -318,6 +392,11 @@ export function CheckoutClient({ holdId }: { holdId: string | null }) {
                   <TabsContent value="flow">
                     <div className="text-sm text-muted-foreground">
                       Provider fallback preparado (interfaz). Activación por configuración.
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="mercadopago">
+                    <div className="text-sm text-muted-foreground">
+                      Checkout redirect a Mercado Pago con notificación server-side para confirmar el pago.
                     </div>
                   </TabsContent>
                 </Tabs>

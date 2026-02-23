@@ -17,11 +17,32 @@ const envSchema = z.object({
   TRANSBANK_COMMERCE_CODE: z.string().optional(),
   TRANSBANK_API_KEY: z.string().optional(),
   TRANSBANK_ENV: z.enum(["integration", "production"]).optional(),
+  TRANSBANK_RETURN_SECRET: z.string().optional(),
 
   // Email (optional; default console)
   EMAIL_PROVIDER: z.enum(["console", "resend", "smtp"]).default("console"),
+  EMAIL_FROM: z.string().optional(),
+  OPERATIONS_EMAILS: z.string().optional(),
+  TPRT_SUPPORT_WHATSAPP: z.string().optional(),
+  TPRT_SUPPORT_EMAIL: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
   SMTP_URL: z.string().optional(),
+
+  // Reminders / cron
+  TPRT_REMINDER_WINDOW_MINUTES: z.coerce.number().int().min(15).max(12 * 60).default(120),
+  TPRT_CRON_SECRET: z.string().optional(),
+
+  // Planilla (optional webhook for Zapier/Make/Sheets)
+  TPRT_PLANILLA_WEBHOOK_URL: z.string().url().optional(),
+  TPRT_PLANILLA_WEBHOOK_SECRET: z.string().optional(),
+
+  // Vehicle lookup (optional)
+  VEHICLE_LOOKUP_PROVIDER: z.enum(["none", "http"]).default("none"),
+  VEHICLE_LOOKUP_HTTP_URL: z.string().url().optional(),
+  VEHICLE_LOOKUP_HTTP_TOKEN: z.string().optional(),
+
+  // MercadoPago (server-only)
+  MERCADOPAGO_ACCESS_TOKEN: z.string().optional(),
 
   // Admin (optional)
   ADMIN_EMAILS: z.string().optional(),

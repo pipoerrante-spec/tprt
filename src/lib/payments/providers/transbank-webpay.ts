@@ -1,19 +1,29 @@
 import type { PaymentsProvider } from "@/lib/payments/types";
 import { getEnv } from "@/lib/env";
+import { Environment, Options, WebpayPlus } from "transbank-sdk";
 
 export const transbankWebpayProvider: PaymentsProvider = {
   id: "transbank_webpay",
-  async createCheckoutSession() {
+  async createCheckoutSession(input) {
     const env = getEnv();
     if (!env.TRANSBANK_COMMERCE_CODE || !env.TRANSBANK_API_KEY || !env.TRANSBANK_ENV) {
       throw new Error("transbank_not_configured");
     }
 
-    // Prepared provider interface:
-    // - create transaction server-side
-    // - return redirect URL
-    // NOTE: Do not implement integration calls without official SDK + keys.
-    throw new Error("transbank_not_implemented");
+    const origin = new URL(input.returnUrl).origin;
+    const envMode = env.TRANSBANK_ENV === "production" ? Environment.Production : Environment.Integration;
+    const options = new Options(env.TRANSBANK_COMMERCE_CODE, env.TRANSBANK_API_KEY, envMode);
+
+    const returnUrl = new URL("/api/webhooks/transbank", origin);
+    if (env.TRANSBANK_RETURN_SECRET) returnUrl.searchParams.set("secret", env.TRANSBANK_RETURN_SECRET);
+
+    const tx = new WebpayPlus.Transaction(options);
+    const created = await tx.create(input.paymentId, input.bookingId, input.amountClp, returnUrl.toString());
+
+    const redirect = new URL("/pago/webpay", origin);
+    redirect.searchParams.set("token_ws", created.token);
+    redirect.searchParams.set("url", created.url);
+
+    return { redirectUrl: redirect.pathname + "?" + redirect.searchParams.toString(), externalRef: created.token };
   },
 };
-

@@ -13,7 +13,10 @@ const startSchema = z.object({
   customerName: z.string().trim().min(2).max(80),
   email: z.string().trim().email().max(254),
   phone: z.string().trim().min(7).max(30),
-  vehiclePlate: z.string().trim().max(12).optional().nullable(),
+  vehiclePlate: z.string().trim().min(5).max(12),
+  vehicleMake: z.string().trim().min(2).max(40),
+  vehicleModel: z.string().trim().min(1).max(60),
+  vehicleYear: z.number().int().min(1950).max(new Date().getFullYear() + 1).optional().nullable(),
   address: z.string().trim().min(5).max(160),
   notes: z.string().trim().max(500).optional().nullable(),
   provider: z.enum(["mock", "transbank_webpay", "flow", "mercadopago"]).optional(),
@@ -48,7 +51,10 @@ export async function POST(req: Request) {
     p_customer_name: parsed.data.customerName,
     p_email: parsed.data.email,
     p_phone: parsed.data.phone,
-    p_vehicle_plate: parsed.data.vehiclePlate ?? null,
+    p_vehicle_plate: parsed.data.vehiclePlate,
+    p_vehicle_make: parsed.data.vehicleMake,
+    p_vehicle_model: parsed.data.vehicleModel,
+    p_vehicle_year: parsed.data.vehicleYear ?? null,
   });
   if (attach.error) {
     const message = attach.error.message || "";
@@ -129,4 +135,3 @@ export async function POST(req: Request) {
     { status: 200, headers: { "Cache-Control": "no-store" } },
   );
 }
-
