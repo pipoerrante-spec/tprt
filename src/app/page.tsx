@@ -3,6 +3,7 @@ import { MainCarousel } from "@/components/main-carousel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, Calendar, FileText, Search, Clock, BarChart3, CheckCircle } from "lucide-react";
+import { VehicleStatusWidget } from "@/components/vehicle/vehicle-status-widget";
 
 export default function HomePage() {
   const currentMonth = new Date().toLocaleString('es-CL', { month: 'long' });
@@ -74,10 +75,7 @@ export default function HomePage() {
               <div className="relative z-10 text-gray-800 space-y-2">
                 <h3 className="text-2xl font-bold italic text-primary">Estado de mi Auto</h3>
                 <p className="text-gray-500 text-sm max-w-[250px]">Ingresa tu patente y revisamos si podemos ayudarte hoy.</p>
-                <div className="flex gap-2 mt-2">
-                  <input className="border border-gray-300 rounded px-2 py-1 text-sm w-32 bg-gray-50" placeholder="AABB-12" />
-                  <Button size="sm" className="bg-primary text-white font-bold">CONSULTAR</Button>
-                </div>
+                <VehicleStatusWidget />
               </div>
             </div>
           </div>
