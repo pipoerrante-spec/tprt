@@ -199,8 +199,8 @@ create or replace function public.get_availability_slots(
   p_date_to date
 )
 returns table (
-  date date,
-  time time,
+  "date" date,
+  "time" time,
   capacity integer,
   reserved integer,
   remaining integer,
@@ -332,8 +332,8 @@ returns table (
   id uuid,
   service_id uuid,
   commune_id uuid,
-  date date,
-  time time,
+  "date" date,
+  "time" time,
   expires_at timestamptz,
   status public.booking_hold_status
 )
