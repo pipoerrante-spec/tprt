@@ -10,8 +10,8 @@ export const runtime = "nodejs";
 const createHoldSchema = z.object({
   serviceId: z.string().uuid(),
   communeId: z.string().uuid(),
-  date: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/),
-  time: z.string().regex(/^\\d{2}:\\d{2}(:\\d{2})?$/),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
 });
 
 function mapHoldError(message?: string) {

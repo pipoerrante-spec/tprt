@@ -8,8 +8,8 @@ export const runtime = "nodejs";
 const querySchema = z.object({
   serviceId: z.string().uuid(),
   communeId: z.string().uuid(),
-  dateFrom: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/),
-  dateTo: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/),
+  dateFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  dateTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
 export async function GET(req: Request) {
