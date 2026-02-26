@@ -27,6 +27,13 @@ import { QueueModal } from "./queue-modal";
 import { UrgencyTimer } from "./urgency-timer";
 import { Label } from "@/components/ui/label";
 import { GVRT_TERMS_SECTIONS } from "@/lib/legal/terms";
+import {
+  DEMO_COUPON_CODE,
+  DEMO_COUPON_DISCOUNT_PERCENT,
+  applyDiscount,
+  getCouponDiscountPercent,
+  normalizeCouponCode,
+} from "@/lib/pricing";
 
 type Service = {
   id: string;
@@ -95,6 +102,10 @@ function buildDemoSlotsForDate(dateIso: string): Slot[] {
   return slots;
 }
 
+function normalizeSlotTime(time: string) {
+  return time.slice(0, 5);
+}
+
 export function ReserveWizard() {
   const router = useRouter();
   const [step, setStep] = React.useState<Step>("queue");
@@ -108,6 +119,7 @@ export function ReserveWizard() {
   const [termsModalOpen, setTermsModalOpen] = React.useState(false);
   const [termsChecked, setTermsChecked] = React.useState(false);
   const [pendingService, setPendingService] = React.useState<Service | null>(null);
+  const [couponCode, setCouponCode] = React.useState("");
 
 
 
@@ -149,8 +161,11 @@ export function ReserveWizard() {
         body: JSON.stringify({ serviceId: service!.id, communeId: commune!.id, ...input }),
       }),
     onSuccess: (data) => {
-      // In a real app we'd save the form data too, but here we just redirect to simulate payment
-      router.push(`/carrito?holdId=${encodeURIComponent(data.holdId)}`);
+      const normalizedCoupon = normalizeCouponCode(couponCode);
+      const nextUrl = new URL("/carrito", window.location.origin);
+      nextUrl.searchParams.set("holdId", data.holdId);
+      if (normalizedCoupon) nextUrl.searchParams.set("coupon", normalizedCoupon);
+      router.push(nextUrl.pathname + "?" + nextUrl.searchParams.toString());
     },
     onError: (e) => {
       const code = e instanceof ApiError ? e.code : "hold_failed";
@@ -180,6 +195,12 @@ export function ReserveWizard() {
     [showClientDemoSlots, selectedDateIso, slotsForDay],
   );
   const availableDates = React.useMemo(() => new Set([...slotsByDate.keys()]), [slotsByDate]);
+  const normalizedCouponCode = React.useMemo(() => normalizeCouponCode(couponCode), [couponCode]);
+  const discountPercent = React.useMemo(() => getCouponDiscountPercent(normalizedCouponCode), [normalizedCouponCode]);
+  const discountPreview = React.useMemo(
+    () => applyDiscount(service?.base_price ?? 85_000, discountPercent),
+    [service?.base_price, discountPercent],
+  );
 
   // Handler for Queue Completion
   const handleQueueComplete = () => {
@@ -393,7 +414,7 @@ export function ReserveWizard() {
                                     ${!s.available ? 'opacity-50 grayscale cursor-not-allowed border-gray-100 bg-gray-50' : 'border-gray-200 bg-white hover:border-primary hover:shadow-md cursor-pointer'}
                                 `}
                     >
-                      <span className="text-lg font-bold text-gray-800">{s.time}</span>
+                      <span className="text-lg font-bold text-gray-800">{normalizeSlotTime(s.time)}</span>
                       {s.demand === 'high' && <span className="text-[10px] uppercase font-bold text-orange-500 mt-1">Pocos cupos</span>}
                     </button>
                   ))
@@ -483,19 +504,36 @@ export function ReserveWizard() {
                     <div className="flex justify-between items-start text-sm">
                       <div className="space-y-1">
                         <p className="font-bold text-gray-800">{service?.name}</p>
-                        <p className="text-xs text-gray-500">{commune?.name} • {selectedDateIso} • {selectedSlot.time}</p>
+                        <p className="text-xs text-gray-500">{commune?.name} • {selectedDateIso} • {normalizeSlotTime(selectedSlot.time)}</p>
                       </div>
                       <span className="font-semibold">{formatClp(service!.base_price)}</span>
                     </div>
 
+                    <div className="space-y-2">
+                      <Label htmlFor="demo-coupon">Código de descuento (opcional)</Label>
+                      <Input
+                        id="demo-coupon"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        placeholder={`Ej: ${DEMO_COUPON_CODE}`}
+                      />
+                      <p className="text-xs text-gray-500">
+                        Demo QA: usa <strong>{DEMO_COUPON_CODE}</strong> para aplicar {DEMO_COUPON_DISCOUNT_PERCENT}%.
+                      </p>
+                    </div>
+
+                    <div className="flex justify-between items-center text-sm text-gray-600">
+                      <span>Descuento</span>
+                      <span>{discountPercent > 0 ? `- ${formatClp(discountPreview.discountAmountClp)}` : formatClp(0)}</span>
+                    </div>
                     <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
                       <span className="font-bold text-lg">Total</span>
-                      <span className="font-black text-2xl text-primary">{formatClp(service!.base_price)}</span>
+                      <span className="font-black text-2xl text-primary">{formatClp(discountPreview.finalAmountClp)}</span>
                     </div>
 
                     <Button
                       className="w-full h-14 text-lg font-bold bg-green-600 hover:bg-green-700 shadow-lg mt-4"
-                      onClick={() => createHold.mutate({ date: selectedSlot.date, time: selectedSlot.time })}
+                      onClick={() => createHold.mutate({ date: selectedSlot.date, time: normalizeSlotTime(selectedSlot.time) })}
                       disabled={createHold.isPending}
                     >
                       {createHold.isPending ? "Procesando..." : "Confirmar y Pagar"}

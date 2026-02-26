@@ -67,8 +67,15 @@ function formatClp(amount: number) {
   }).format(amount);
 }
 
-export function CheckoutClient({ holdId }: { holdId: string | null }) {
+export function CheckoutClient({
+  holdId,
+  initialCouponCode,
+}: {
+  holdId: string | null;
+  initialCouponCode: string | null;
+}) {
   const router = useRouter();
+  const normalizedInitialCoupon = normalizeCouponCode(initialCouponCode);
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -81,10 +88,10 @@ export function CheckoutClient({ holdId }: { holdId: string | null }) {
       vehicleYear: "",
       address: "",
       notes: "",
-      couponCode: "",
+      couponCode: normalizedInitialCoupon ?? "",
       consentPrivacy: false,
       consentSmsWhatsapp: false,
-      provider: "mock",
+      provider: "transbank_webpay",
     },
     mode: "onBlur",
   });
@@ -437,7 +444,17 @@ export function CheckoutClient({ holdId }: { holdId: string | null }) {
             </Card>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <Button variant="outline" type="button" onClick={() => router.push(`/carrito?holdId=${holdId}`)}>
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() =>
+                  router.push(
+                    normalizedCouponCode
+                      ? `/carrito?holdId=${holdId}&coupon=${encodeURIComponent(normalizedCouponCode)}`
+                      : `/carrito?holdId=${holdId}`,
+                  )
+                }
+              >
                 Volver al carrito
               </Button>
               <Button size="lg" type="submit" disabled={startCheckout.isPending || holdRow?.status !== "active"}>

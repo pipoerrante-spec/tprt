@@ -11,7 +11,7 @@ const createHoldSchema = z.object({
   serviceId: z.string().uuid(),
   communeId: z.string().uuid(),
   date: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/),
-  time: z.string().regex(/^\\d{2}:\\d{2}$/),
+  time: z.string().regex(/^\\d{2}:\\d{2}(:\\d{2})?$/),
 });
 
 function mapHoldError(message?: string) {
@@ -45,11 +45,12 @@ export async function POST(req: Request) {
 
   const env = getEnv();
   const supabase = getSupabaseAdmin();
+  const normalizedTime = parsed.data.time.length === 5 ? `${parsed.data.time}:00` : parsed.data.time;
   const payload = {
     p_service_id: parsed.data.serviceId,
     p_commune_id: parsed.data.communeId,
     p_date: parsed.data.date,
-    p_time: parsed.data.time,
+    p_time: normalizedTime,
     p_ttl_minutes: env.TPRT_HOLD_TTL_MINUTES,
   };
 

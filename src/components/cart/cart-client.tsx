@@ -32,7 +32,7 @@ function formatClp(amount: number) {
   }).format(amount);
 }
 
-export function CartClient({ holdId }: { holdId: string | null }) {
+export function CartClient({ holdId, couponCode }: { holdId: string | null; couponCode: string | null }) {
   const router = useRouter();
 
   const hold = useQuery({
@@ -63,6 +63,9 @@ export function CartClient({ holdId }: { holdId: string | null }) {
   const holdRow = hold.data?.hold;
   const service = services.data?.services?.find((s) => s.id === holdRow?.service_id) ?? null;
   const commune = communes.data?.communes?.find((c) => c.id === holdRow?.commune_id) ?? null;
+  const checkoutHref = couponCode
+    ? `/checkout?holdId=${encodeURIComponent(holdId ?? "")}&coupon=${encodeURIComponent(couponCode)}`
+    : `/checkout?holdId=${encodeURIComponent(holdId ?? "")}`;
 
   if (!holdId) {
     return (
@@ -147,7 +150,7 @@ export function CartClient({ holdId }: { holdId: string | null }) {
               disabled={!holdRow || holdRow.status !== "active" || countdown.expired}
               asChild
             >
-              <Link href={`/checkout?holdId=${encodeURIComponent(holdId)}`}>Pagar ahora</Link>
+              <Link href={checkoutHref}>Pagar ahora</Link>
             </Button>
           </div>
 
@@ -159,4 +162,3 @@ export function CartClient({ holdId }: { holdId: string | null }) {
     </div>
   );
 }
-
