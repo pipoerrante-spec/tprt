@@ -37,9 +37,10 @@ const envSchema = z.object({
   TPRT_PLANILLA_WEBHOOK_SECRET: z.string().optional(),
 
   // Vehicle lookup (optional)
-  VEHICLE_LOOKUP_PROVIDER: z.enum(["none", "http"]).default("none"),
+  VEHICLE_LOOKUP_PROVIDER: z.enum(["none", "http", "getapi_patente"]).default("none"),
   VEHICLE_LOOKUP_HTTP_URL: z.string().url().optional(),
   VEHICLE_LOOKUP_HTTP_TOKEN: z.string().optional(),
+  GETAPI_PATENTE_API_KEY: z.string().optional(),
 
   // MercadoPago (server-only)
   MERCADOPAGO_ACCESS_TOKEN: z.string().optional(),

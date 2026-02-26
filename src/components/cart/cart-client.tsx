@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -23,6 +24,11 @@ type HoldPublic = {
 
 type Service = { id: string; name: string; base_price: number };
 type Commune = { id: string; name: string; region: string };
+const HOLD_STORAGE_KEY = "gvrt_hold_id_v1";
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
 
 function formatClp(amount: number) {
   return new Intl.NumberFormat("es-CL", {
@@ -34,12 +40,33 @@ function formatClp(amount: number) {
 
 export function CartClient({ holdId, couponCode }: { holdId: string | null; couponCode: string | null }) {
   const router = useRouter();
+  const [effectiveHoldId, setEffectiveHoldId] = React.useState<string | null>(holdId);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (holdId && isUuid(holdId)) {
+      setEffectiveHoldId(holdId);
+      window.localStorage.setItem(HOLD_STORAGE_KEY, holdId);
+      return;
+    }
+    const cached = window.localStorage.getItem(HOLD_STORAGE_KEY);
+    if (cached && isUuid(cached)) setEffectiveHoldId(cached);
+  }, [holdId]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (holdId || !effectiveHoldId) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("holdId", effectiveHoldId);
+    if (couponCode) url.searchParams.set("coupon", couponCode);
+    router.replace(url.pathname + "?" + url.searchParams.toString());
+  }, [couponCode, effectiveHoldId, holdId, router]);
 
   const hold = useQuery({
-    enabled: !!holdId,
-    queryKey: ["hold", holdId],
-    queryFn: () => apiJson<{ hold: HoldPublic }>(`/api/holds/${encodeURIComponent(holdId!)}`),
-    refetchInterval: 20_000,
+    enabled: !!effectiveHoldId,
+    queryKey: ["hold", effectiveHoldId],
+    queryFn: () => apiJson<{ hold: HoldPublic }>(`/api/holds/${encodeURIComponent(effectiveHoldId!)}`),
+    refetchInterval: false,
     refetchOnWindowFocus: false,
     retry: 1,
   });
@@ -68,10 +95,17 @@ export function CartClient({ holdId, couponCode }: { holdId: string | null; coup
   const commune = communes.data?.communes?.find((c) => c.id === holdRow?.commune_id) ?? null;
   const holdBlocked = holdRow?.status === "expired" || holdRow?.status === "canceled";
   const checkoutHref = couponCode
-    ? `/checkout?holdId=${encodeURIComponent(holdId ?? "")}&coupon=${encodeURIComponent(couponCode)}`
-    : `/checkout?holdId=${encodeURIComponent(holdId ?? "")}`;
+    ? `/checkout?holdId=${encodeURIComponent(effectiveHoldId ?? "")}&coupon=${encodeURIComponent(couponCode)}`
+    : `/checkout?holdId=${encodeURIComponent(effectiveHoldId ?? "")}`;
 
-  if (!holdId) {
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (holdRow?.status === "expired" || holdRow?.status === "canceled") {
+      window.localStorage.removeItem(HOLD_STORAGE_KEY);
+    }
+  }, [holdRow?.status]);
+
+  if (!effectiveHoldId) {
     return (
       <Card className="bg-card/40">
         <CardHeader>
@@ -108,9 +142,9 @@ export function CartClient({ holdId, couponCode }: { holdId: string | null; coup
           <CardDescription>Bloqueo temporal por 7 minutos. Si expira, se libera automáticamente.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {hold.isLoading ? (
+          {hold.isLoading && !holdRow ? (
             <Skeleton className="h-24" />
-          ) : hold.isError ? (
+          ) : !holdRow && hold.isError ? (
             <div className="text-sm text-muted-foreground">No pudimos cargar el hold. Intenta nuevamente.</div>
           ) : !holdRow ? (
             <div className="text-sm text-muted-foreground">Hold no encontrado.</div>

@@ -21,8 +21,26 @@ export async function GET(_: Request, ctx: { params: Promise<{ id: string }> }) 
   }
 
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase.rpc("get_booking_hold_public", { p_hold_id: parsed.data.id });
-  if (error) return NextResponse.json({ error: "hold_unavailable" }, { status: 500 });
+  const rpc = await supabase.rpc("get_booking_hold_public", { p_hold_id: parsed.data.id });
+  let data = rpc.data;
+  if (rpc.error) {
+    const nowIso = new Date().toISOString();
+    await supabase
+      .from("booking_holds")
+      .update({ status: "expired" })
+      .eq("id", parsed.data.id)
+      .eq("status", "active")
+      .lte("expires_at", nowIso);
+
+    const fallback = await supabase
+      .from("booking_holds")
+      .select("id,service_id,commune_id,date,time,expires_at,status")
+      .eq("id", parsed.data.id)
+      .maybeSingle();
+    if (fallback.error) return NextResponse.json({ error: "hold_unavailable" }, { status: 500 });
+    if (!fallback.data) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    data = [fallback.data];
+  }
   if (!data?.[0]) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   return NextResponse.json({ hold: data[0] }, { status: 200, headers: { "Cache-Control": "no-store" } });

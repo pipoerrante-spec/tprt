@@ -29,6 +29,41 @@ const startSchema = z.object({
   provider: z.enum(["transbank_webpay", "mercadopago"]).optional(),
 });
 
+type HoldPublic = {
+  id: string;
+  service_id: string;
+  commune_id: string;
+  date: string;
+  time: string;
+  expires_at: string;
+  status: "active" | "expired" | "converted" | "canceled";
+};
+
+async function getHoldPublicSafe(supabase: ReturnType<typeof getSupabaseAdmin>, holdId: string) {
+  const rpc = await supabase.rpc("get_booking_hold_public", { p_hold_id: holdId });
+  if (!rpc.error && rpc.data?.[0]) {
+    return { hold: rpc.data[0] as HoldPublic, error: null as null | "hold_unavailable" };
+  }
+
+  const nowIso = new Date().toISOString();
+  await supabase
+    .from("booking_holds")
+    .update({ status: "expired" })
+    .eq("id", holdId)
+    .eq("status", "active")
+    .lte("expires_at", nowIso);
+
+  const fallback = await supabase
+    .from("booking_holds")
+    .select("id,service_id,commune_id,date,time,expires_at,status")
+    .eq("id", holdId)
+    .maybeSingle();
+  if (fallback.error) {
+    return { hold: null, error: "hold_unavailable" as const };
+  }
+  return { hold: (fallback.data as HoldPublic | null) ?? null, error: null as null | "hold_unavailable" };
+}
+
 export async function POST(req: Request) {
   const ip = getRequestIp(new Headers(req.headers));
   const limit = rateLimit(`checkout:${ip}`, { windowMs: 10 * 60_000, max: 6 });
@@ -48,10 +83,10 @@ export async function POST(req: Request) {
   const env = getEnv();
   const supabase = getSupabaseAdmin();
 
-  const hold = await supabase.rpc("get_booking_hold_public", { p_hold_id: parsed.data.holdId });
-  if (hold.error) return NextResponse.json({ error: "hold_unavailable" }, { status: 500 });
+  const holdResult = await getHoldPublicSafe(supabase, parsed.data.holdId);
+  if (holdResult.error) return NextResponse.json({ error: holdResult.error }, { status: 500 });
 
-  const holdRow = hold.data?.[0] ?? null;
+  const holdRow = holdResult.hold;
   let bookingId: string | null = null;
 
   if (!holdRow || holdRow.status === "converted") {
@@ -131,6 +166,34 @@ export async function POST(req: Request) {
     .maybeSingle();
   if (bookingRow.error || !bookingRow.data) {
     return NextResponse.json({ error: "checkout_failed" }, { status: 500 });
+  }
+
+  const paidPayment = await supabase
+    .from("payments")
+    .select("id,provider,amount_clp,currency")
+    .eq("booking_id", bookingId)
+    .eq("status", "paid")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (paidPayment.error) {
+    return NextResponse.json({ error: "checkout_failed" }, { status: 500 });
+  }
+  if (paidPayment.data) {
+    return NextResponse.json(
+      {
+        bookingId,
+        paymentId: paidPayment.data.id,
+        provider: paidPayment.data.provider,
+        redirectUrl: `/confirmacion/${encodeURIComponent(bookingId)}`,
+        amountClp: paidPayment.data.amount_clp,
+        baseAmountClp: paidPayment.data.amount_clp,
+        discountAmountClp: 0,
+        discountPercent: 0,
+        couponCode: null,
+      },
+      { status: 200, headers: { "Cache-Control": "no-store" } },
+    );
   }
 
   const serviceRow = await supabase

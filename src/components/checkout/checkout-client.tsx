@@ -59,6 +59,11 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 const CHECKOUT_PREFILL_KEY = "gvrt_checkout_prefill_v1";
+const HOLD_STORAGE_KEY = "gvrt_hold_id_v1";
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
 
 function formatClp(amount: number) {
   return new Intl.NumberFormat("es-CL", {
@@ -76,6 +81,7 @@ export function CheckoutClient({
   initialCouponCode: string | null;
 }) {
   const router = useRouter();
+  const [effectiveHoldId, setEffectiveHoldId] = React.useState<string | null>(holdId);
   const normalizedInitialCoupon = normalizeCouponCode(initialCouponCode);
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -130,6 +136,26 @@ export function CheckoutClient({
   }, [form]);
 
   React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (holdId && isUuid(holdId)) {
+      setEffectiveHoldId(holdId);
+      window.localStorage.setItem(HOLD_STORAGE_KEY, holdId);
+      return;
+    }
+    const cached = window.localStorage.getItem(HOLD_STORAGE_KEY);
+    if (cached && isUuid(cached)) setEffectiveHoldId(cached);
+  }, [holdId]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (holdId || !effectiveHoldId) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("holdId", effectiveHoldId);
+    if (normalizedInitialCoupon) url.searchParams.set("coupon", normalizedInitialCoupon);
+    router.replace(url.pathname + "?" + url.searchParams.toString());
+  }, [effectiveHoldId, holdId, normalizedInitialCoupon, router]);
+
+  React.useEffect(() => {
     const sub = form.watch((values) => {
       if (typeof window === "undefined") return;
       window.localStorage.setItem(
@@ -157,6 +183,7 @@ export function CheckoutClient({
   const provider = useWatch({ control: form.control, name: "provider" });
   const vehiclePlate = useWatch({ control: form.control, name: "vehiclePlate" });
   const couponCode = useWatch({ control: form.control, name: "couponCode" });
+  const lastLookupPlateRef = React.useRef<string>("");
 
   const vehicleLookup = useMutation({
     mutationFn: async (plate: string) =>
@@ -177,7 +204,9 @@ export function CheckoutClient({
   React.useEffect(() => {
     const normalized = normalizePlate(vehiclePlate || "");
     if (normalized.length < 5) return;
+    if (lastLookupPlateRef.current === normalized) return;
     const t = setTimeout(() => {
+      lastLookupPlateRef.current = normalized;
       vehicleLookup.mutate(normalized);
     }, 450);
     return () => clearTimeout(t);
@@ -185,10 +214,10 @@ export function CheckoutClient({
   }, [vehiclePlate]);
 
   const hold = useQuery({
-    enabled: !!holdId,
-    queryKey: ["hold", holdId],
-    queryFn: () => apiJson<{ hold: HoldPublic }>(`/api/holds/${encodeURIComponent(holdId!)}`),
-    refetchInterval: 20_000,
+    enabled: !!effectiveHoldId,
+    queryKey: ["hold", effectiveHoldId],
+    queryFn: () => apiJson<{ hold: HoldPublic }>(`/api/holds/${encodeURIComponent(effectiveHoldId!)}`),
+    refetchInterval: false,
     refetchOnWindowFocus: false,
     retry: 1,
   });
@@ -214,7 +243,7 @@ export function CheckoutClient({
 
   const startCheckout = useMutation({
     mutationFn: async (values: FormValues) => {
-      if (!holdId) throw new Error("missing_hold_id");
+      if (!effectiveHoldId) throw new Error("missing_hold_id");
       return apiJson<{
         bookingId: string;
         paymentId: string;
@@ -228,7 +257,7 @@ export function CheckoutClient({
       }>("/api/checkout/start", {
         method: "POST",
         body: JSON.stringify({
-          holdId,
+          holdId: effectiveHoldId,
           customerName: values.customerName,
           email: values.email,
           phone: values.phone,
@@ -249,7 +278,9 @@ export function CheckoutClient({
     },
     onError: (e) => {
       const code = e instanceof ApiError ? e.code : e instanceof Error ? e.message : "checkout_failed";
-      if (code === "hold_not_active") toast.error("Tu hold expiró. Vuelve a reservar una hora.");
+      if (code === "hold_not_active" || code === "hold_not_found" || code === "hold_unavailable") {
+        toast.error("Tu bloqueo ya no está disponible. Vuelve al carrito y genera un nuevo cupo.");
+      }
       else if (code === "invalid_coupon") toast.error("Cupón inválido. Usa un código válido.");
       else if (code.includes("not_implemented") || code.includes("not_configured")) {
         toast.error("Proveedor de pago no disponible en este entorno.");
@@ -263,7 +294,14 @@ export function CheckoutClient({
   const previewDiscountPercent = normalizedCouponCode === DEMO_COUPON_CODE ? DEMO_COUPON_DISCOUNT_PERCENT : 0;
   const previewAmounts = applyDiscount(baseAmountClp, previewDiscountPercent);
 
-  if (!holdId) {
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (holdRow?.status === "expired" || holdRow?.status === "canceled") {
+      window.localStorage.removeItem(HOLD_STORAGE_KEY);
+    }
+  }, [holdRow?.status]);
+
+  if (!effectiveHoldId) {
     return (
       <Card className="bg-card/40">
         <CardHeader>
@@ -302,11 +340,15 @@ export function CheckoutClient({
           <CardDescription>Verifica datos antes de pagar.</CardDescription>
         </CardHeader>
         <CardContent>
-          {hold.isLoading ? (
+          {hold.isLoading && !holdRow ? (
             <Skeleton className="h-20" />
+          ) : !holdRow && hold.isError ? (
+            <div className="text-sm text-muted-foreground">
+              No pudimos cargar el hold. Vuelve al carrito y refresca para continuar con el pago.
+            </div>
           ) : !holdRow ? (
             <div className="text-sm text-muted-foreground">
-              No pudimos cargar el hold. Puedes intentar pagar igual o volver al carrito para refrescar.
+              Hold no encontrado. Vuelve al carrito para regenerar el bloqueo antes de pagar.
             </div>
           ) : (
             <div className="grid gap-3 rounded-2xl border border-border/60 bg-background/30 p-4 sm:grid-cols-2">
@@ -496,8 +538,8 @@ export function CheckoutClient({
                 onClick={() =>
                   router.push(
                     normalizedCouponCode
-                      ? `/carrito?holdId=${holdId}&coupon=${encodeURIComponent(normalizedCouponCode)}`
-                      : `/carrito?holdId=${holdId}`,
+                      ? `/carrito?holdId=${effectiveHoldId}&coupon=${encodeURIComponent(normalizedCouponCode)}`
+                      : `/carrito?holdId=${effectiveHoldId}`,
                   )
                 }
               >
@@ -507,7 +549,7 @@ export function CheckoutClient({
                 size="lg"
                 type="submit"
                 disabled={
-                  startCheckout.isPending || holdRow?.status === "expired" || holdRow?.status === "canceled"
+                  startCheckout.isPending || !holdRow || holdRow.status === "expired" || holdRow.status === "canceled"
                 }
               >
                 {startCheckout.isPending ? "Iniciando pago…" : "Pagar"}

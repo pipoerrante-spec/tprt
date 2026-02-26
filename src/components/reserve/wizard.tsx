@@ -36,6 +36,7 @@ import {
 } from "@/lib/pricing";
 
 const CHECKOUT_PREFILL_KEY = "gvrt_checkout_prefill_v1";
+const HOLD_STORAGE_KEY = "gvrt_hold_id_v1";
 
 type Service = {
   id: string;
@@ -177,6 +178,7 @@ export function ReserveWizard() {
             provider: "transbank_webpay",
           }),
         );
+        window.localStorage.setItem(HOLD_STORAGE_KEY, data.holdId);
       }
       const nextUrl = new URL("/carrito", window.location.origin);
       nextUrl.searchParams.set("holdId", data.holdId);
