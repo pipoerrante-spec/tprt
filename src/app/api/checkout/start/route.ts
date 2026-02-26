@@ -26,7 +26,7 @@ const startSchema = z.object({
   address: z.string().trim().min(5).max(160),
   notes: z.string().trim().max(500).optional().nullable(),
   couponCode: z.string().trim().max(32).optional().nullable(),
-  provider: z.enum(["mock", "transbank_webpay", "flow", "mercadopago"]).optional(),
+  provider: z.enum(["transbank_webpay", "mercadopago"]).optional(),
 });
 
 export async function POST(req: Request) {
@@ -50,39 +50,80 @@ export async function POST(req: Request) {
 
   const hold = await supabase.rpc("get_booking_hold_public", { p_hold_id: parsed.data.holdId });
   if (hold.error) return NextResponse.json({ error: "hold_unavailable" }, { status: 500 });
-  if (!hold.data?.[0]) return NextResponse.json({ error: "hold_not_found" }, { status: 404 });
-  if (hold.data[0].status !== "active") return NextResponse.json({ error: "hold_not_active" }, { status: 409 });
 
-  const attach = await supabase.rpc("attach_customer_to_hold", {
-    p_hold_id: parsed.data.holdId,
-    p_customer_name: parsed.data.customerName,
-    p_email: parsed.data.email,
-    p_phone: parsed.data.phone,
-    p_vehicle_plate: parsed.data.vehiclePlate,
-    p_vehicle_make: parsed.data.vehicleMake,
-    p_vehicle_model: parsed.data.vehicleModel,
-    p_vehicle_year: parsed.data.vehicleYear ?? null,
-  });
-  if (attach.error) {
-    const message = attach.error.message || "";
-    if (message.includes("tprt_hold_not_active")) {
-      return NextResponse.json({ error: "hold_not_active" }, { status: 409 });
+  const holdRow = hold.data?.[0] ?? null;
+  let bookingId: string | null = null;
+
+  if (!holdRow || holdRow.status === "converted") {
+    const existing = await supabase
+      .from("bookings")
+      .select("id,status")
+      .eq("hold_id", parsed.data.holdId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existing.error) return NextResponse.json({ error: "checkout_failed" }, { status: 500 });
+    if (!existing.data?.id) {
+      return NextResponse.json({ error: holdRow ? "hold_not_active" : "hold_not_found" }, { status: holdRow ? 409 : 404 });
     }
+    bookingId = existing.data.id;
+  } else if (holdRow.status === "active") {
+    const attach = await supabase.rpc("attach_customer_to_hold", {
+      p_hold_id: parsed.data.holdId,
+      p_customer_name: parsed.data.customerName,
+      p_email: parsed.data.email,
+      p_phone: parsed.data.phone,
+      p_vehicle_plate: parsed.data.vehiclePlate,
+      p_vehicle_make: parsed.data.vehicleMake,
+      p_vehicle_model: parsed.data.vehicleModel,
+      p_vehicle_year: parsed.data.vehicleYear ?? null,
+    });
+    if (attach.error) {
+      const message = attach.error.message || "";
+      if (message.includes("tprt_hold_not_active")) {
+        return NextResponse.json({ error: "hold_not_active" }, { status: 409 });
+      }
+      return NextResponse.json({ error: "checkout_failed" }, { status: 500 });
+    }
+
+    const booking = await supabase.rpc("create_booking_from_hold", {
+      p_hold_id: parsed.data.holdId,
+      p_address: parsed.data.address,
+      p_notes: parsed.data.notes ?? null,
+    });
+    if (booking.error || !booking.data) {
+      const message = booking.error?.message || "";
+      if (message.includes("tprt_hold_not_active")) return NextResponse.json({ error: "hold_not_active" }, { status: 409 });
+      return NextResponse.json({ error: "checkout_failed" }, { status: 500 });
+    }
+
+    bookingId = booking.data as unknown as string;
+  } else {
+    return NextResponse.json({ error: "hold_not_active" }, { status: 409 });
+  }
+
+  if (!bookingId) {
     return NextResponse.json({ error: "checkout_failed" }, { status: 500 });
   }
 
-  const booking = await supabase.rpc("create_booking_from_hold", {
-    p_hold_id: parsed.data.holdId,
-    p_address: parsed.data.address,
-    p_notes: parsed.data.notes ?? null,
-  });
-  if (booking.error || !booking.data) {
-    const message = booking.error?.message || "";
-    if (message.includes("tprt_hold_not_active")) return NextResponse.json({ error: "hold_not_active" }, { status: 409 });
+  const patchBooking = await supabase
+    .from("bookings")
+    .update({
+      customer_name: parsed.data.customerName,
+      email: parsed.data.email,
+      phone: parsed.data.phone,
+      address: parsed.data.address,
+      notes: parsed.data.notes ?? null,
+      vehicle_plate: parsed.data.vehiclePlate,
+      vehicle_make: parsed.data.vehicleMake,
+      vehicle_model: parsed.data.vehicleModel,
+      vehicle_year: parsed.data.vehicleYear ?? null,
+    })
+    .eq("id", bookingId);
+  if (patchBooking.error) {
     return NextResponse.json({ error: "checkout_failed" }, { status: 500 });
   }
 
-  const bookingId = booking.data as unknown as string;
   const bookingRow = await supabase
     .from("bookings")
     .select("id,service_id,email,status")
@@ -109,7 +150,7 @@ export async function POST(req: Request) {
   }
   const { discountAmountClp, finalAmountClp } = applyDiscount(baseAmountClp, discountPercent);
   const amountClp = finalAmountClp;
-  const providerId = parsed.data.provider ?? env.TPRT_PAYMENTS_PROVIDER_ACTIVE;
+  const providerId = parsed.data.provider ?? (env.TPRT_PAYMENTS_PROVIDER_ACTIVE === "mercadopago" ? "mercadopago" : "transbank_webpay");
   const provider = getPaymentsProvider(providerId);
 
   const payment = await supabase.rpc("create_payment_for_booking", {

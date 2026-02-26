@@ -54,10 +54,11 @@ const formSchema = z.object({
   couponCode: z.string().trim().max(32).optional(),
   consentPrivacy: z.boolean().refine((v) => v === true, "Debes aceptar la política de privacidad"),
   consentSmsWhatsapp: z.boolean().optional(),
-  provider: z.enum(["mock", "transbank_webpay", "flow", "mercadopago"]),
+  provider: z.enum(["transbank_webpay", "mercadopago"]),
 });
 
 type FormValues = z.infer<typeof formSchema>;
+const CHECKOUT_PREFILL_KEY = "gvrt_checkout_prefill_v1";
 
 function formatClp(amount: number) {
   return new Intl.NumberFormat("es-CL", {
@@ -96,6 +97,61 @@ export function CheckoutClient({
     mode: "onBlur",
   });
 
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const raw = window.localStorage.getItem(CHECKOUT_PREFILL_KEY);
+    if (!raw) return;
+    let parsed: Partial<FormValues> = {};
+    try {
+      parsed = JSON.parse(raw) as Partial<FormValues>;
+    } catch {
+      return;
+    }
+    const fields: Array<keyof FormValues> = [
+      "customerName",
+      "email",
+      "phone",
+      "vehiclePlate",
+      "vehicleMake",
+      "vehicleModel",
+      "vehicleYear",
+      "address",
+      "notes",
+      "couponCode",
+      "provider",
+    ];
+    for (const field of fields) {
+      const current = form.getValues(field);
+      const incoming = parsed[field];
+      if ((current === "" || current == null) && incoming != null && incoming !== "") {
+        form.setValue(field, incoming as FormValues[typeof field], { shouldDirty: false });
+      }
+    }
+  }, [form]);
+
+  React.useEffect(() => {
+    const sub = form.watch((values) => {
+      if (typeof window === "undefined") return;
+      window.localStorage.setItem(
+        CHECKOUT_PREFILL_KEY,
+        JSON.stringify({
+          customerName: values.customerName ?? "",
+          email: values.email ?? "",
+          phone: values.phone ?? "",
+          vehiclePlate: values.vehiclePlate ?? "",
+          vehicleMake: values.vehicleMake ?? "",
+          vehicleModel: values.vehicleModel ?? "",
+          vehicleYear: values.vehicleYear ?? "",
+          address: values.address ?? "",
+          notes: values.notes ?? "",
+          couponCode: values.couponCode ?? "",
+          provider: values.provider ?? "transbank_webpay",
+        }),
+      );
+    });
+    return () => sub.unsubscribe();
+  }, [form]);
+
   const consentPrivacy = useWatch({ control: form.control, name: "consentPrivacy" });
   const consentSmsWhatsapp = useWatch({ control: form.control, name: "consentSmsWhatsapp" });
   const provider = useWatch({ control: form.control, name: "provider" });
@@ -132,7 +188,9 @@ export function CheckoutClient({
     enabled: !!holdId,
     queryKey: ["hold", holdId],
     queryFn: () => apiJson<{ hold: HoldPublic }>(`/api/holds/${encodeURIComponent(holdId!)}`),
-    refetchInterval: 2_000,
+    refetchInterval: 20_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
   });
 
   const services = useQuery({
@@ -194,7 +252,7 @@ export function CheckoutClient({
       if (code === "hold_not_active") toast.error("Tu hold expiró. Vuelve a reservar una hora.");
       else if (code === "invalid_coupon") toast.error("Cupón inválido. Usa un código válido.");
       else if (code.includes("not_implemented") || code.includes("not_configured")) {
-        toast.error("Proveedor de pago no disponible en este entorno. Usa Mock en local.");
+        toast.error("Proveedor de pago no disponible en este entorno.");
       } else toast.error("No pudimos iniciar el pago. Intenta nuevamente.");
     },
   });
@@ -247,7 +305,9 @@ export function CheckoutClient({
           {hold.isLoading ? (
             <Skeleton className="h-20" />
           ) : !holdRow ? (
-            <div className="text-sm text-muted-foreground">Hold no encontrado.</div>
+            <div className="text-sm text-muted-foreground">
+              No pudimos cargar el hold. Puedes intentar pagar igual o volver al carrito para refrescar.
+            </div>
           ) : (
             <div className="grid gap-3 rounded-2xl border border-border/60 bg-background/30 p-4 sm:grid-cols-2">
               <div>
@@ -404,9 +464,7 @@ export function CheckoutClient({
             <Card className="bg-background/30">
               <CardHeader>
                 <CardTitle className="text-base">Método de pago</CardTitle>
-                <CardDescription>
-                  Webpay es preferido en producción. En local usamos Mock E2E con webhook.
-                </CardDescription>
+                <CardDescription>Selecciona Webpay o Mercado Pago.</CardDescription>
               </CardHeader>
               <CardContent>
                 <Tabs
@@ -414,24 +472,12 @@ export function CheckoutClient({
                   onValueChange={(v) => form.setValue("provider", v as FormValues["provider"])}
                 >
                   <TabsList>
-                    <TabsTrigger value="mock">Mock (local)</TabsTrigger>
                     <TabsTrigger value="transbank_webpay">Webpay</TabsTrigger>
-                    <TabsTrigger value="flow">Flow</TabsTrigger>
                     <TabsTrigger value="mercadopago">Mercado Pago</TabsTrigger>
                   </TabsList>
-                  <TabsContent value="mock">
-                    <div className="text-sm text-muted-foreground">
-                      Simula pago exitoso/fallido y procesa webhook local para confirmar la reserva.
-                    </div>
-                  </TabsContent>
                   <TabsContent value="transbank_webpay">
                     <div className="text-sm text-muted-foreground">
-                      Preparado como provider seguro server-side (llaves solo en backend).
-                    </div>
-                  </TabsContent>
-                  <TabsContent value="flow">
-                    <div className="text-sm text-muted-foreground">
-                      Provider fallback preparado (interfaz). Activación por configuración.
+                      Redirección a Webpay (QA/Producción) con confirmación server-side.
                     </div>
                   </TabsContent>
                   <TabsContent value="mercadopago">
@@ -457,7 +503,13 @@ export function CheckoutClient({
               >
                 Volver al carrito
               </Button>
-              <Button size="lg" type="submit" disabled={startCheckout.isPending || holdRow?.status !== "active"}>
+              <Button
+                size="lg"
+                type="submit"
+                disabled={
+                  startCheckout.isPending || holdRow?.status === "expired" || holdRow?.status === "canceled"
+                }
+              >
                 {startCheckout.isPending ? "Iniciando pago…" : "Pagar"}
               </Button>
             </div>

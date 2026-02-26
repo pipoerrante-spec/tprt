@@ -39,7 +39,9 @@ export function CartClient({ holdId, couponCode }: { holdId: string | null; coup
     enabled: !!holdId,
     queryKey: ["hold", holdId],
     queryFn: () => apiJson<{ hold: HoldPublic }>(`/api/holds/${encodeURIComponent(holdId!)}`),
-    refetchInterval: 2_000,
+    refetchInterval: 20_000,
+    refetchOnWindowFocus: false,
+    retry: 1,
   });
 
   const expiresAt = hold.data?.hold?.expires_at;
@@ -49,6 +51,7 @@ export function CartClient({ holdId, couponCode }: { holdId: string | null; coup
     queryKey: ["catalog", "services"],
     queryFn: () => apiJson<{ services: Service[] }>("/api/catalog/services"),
     enabled: !!hold.data?.hold,
+    refetchOnWindowFocus: false,
   });
 
   const communes = useQuery({
@@ -63,6 +66,7 @@ export function CartClient({ holdId, couponCode }: { holdId: string | null; coup
   const holdRow = hold.data?.hold;
   const service = services.data?.services?.find((s) => s.id === holdRow?.service_id) ?? null;
   const commune = communes.data?.communes?.find((c) => c.id === holdRow?.commune_id) ?? null;
+  const holdBlocked = holdRow?.status === "expired" || holdRow?.status === "canceled";
   const checkoutHref = couponCode
     ? `/checkout?holdId=${encodeURIComponent(holdId ?? "")}&coupon=${encodeURIComponent(couponCode)}`
     : `/checkout?holdId=${encodeURIComponent(holdId ?? "")}`;
@@ -147,7 +151,7 @@ export function CartClient({ holdId, couponCode }: { holdId: string | null; coup
             </Button>
             <Button
               size="lg"
-              disabled={!holdRow || holdRow.status !== "active" || countdown.expired}
+              disabled={!holdRow || holdBlocked || (holdRow.status === "active" && countdown.expired)}
               asChild
             >
               <Link href={checkoutHref}>Pagar ahora</Link>

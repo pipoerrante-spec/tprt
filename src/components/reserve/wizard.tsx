@@ -35,6 +35,8 @@ import {
   normalizeCouponCode,
 } from "@/lib/pricing";
 
+const CHECKOUT_PREFILL_KEY = "gvrt_checkout_prefill_v1";
+
 type Service = {
   id: string;
   name: string;
@@ -164,6 +166,18 @@ export function ReserveWizard() {
       }),
     onSuccess: (data) => {
       const normalizedCoupon = normalizeCouponCode(couponCode);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          CHECKOUT_PREFILL_KEY,
+          JSON.stringify({
+            email: email.trim(),
+            vehiclePlate: patent.trim().toUpperCase(),
+            address: address.trim(),
+            couponCode: normalizedCoupon ?? "",
+            provider: "transbank_webpay",
+          }),
+        );
+      }
       const nextUrl = new URL("/carrito", window.location.origin);
       nextUrl.searchParams.set("holdId", data.holdId);
       if (normalizedCoupon) nextUrl.searchParams.set("coupon", normalizedCoupon);
@@ -492,6 +506,17 @@ export function ReserveWizard() {
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
                         placeholder="Calle, Número, Depto"
+                        className="h-12 bg-gray-50"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Email (para prellenar checkout)</Label>
+                      <Input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="correo@ejemplo.cl"
                         className="h-12 bg-gray-50"
                       />
                     </div>
