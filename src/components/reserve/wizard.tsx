@@ -311,7 +311,9 @@ export function ReserveWizard() {
                   onSelect={(d) => d && setSelectedDate(d)}
                   disabled={(d) => {
                     const iso = toIsoDate(d);
-                    return iso < dateFrom || iso > dateTo || !availableDates.has(iso);
+                    if (iso < dateFrom || iso > dateTo) return true;
+                    if (availableDates.size === 0) return false;
+                    return !availableDates.has(iso);
                   }}
                   className="rounded-md border mx-auto"
                 />
@@ -328,23 +330,29 @@ export function ReserveWizard() {
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {slotsForDay.map((s) => (
-                  <button
-                    key={s.time}
-                    disabled={!s.available}
-                    onClick={() => {
-                      setSelectedSlot(s);
-                      setStep("details");
-                    }}
-                    className={`
+                {slotsForDay.length === 0 ? (
+                  <div className="col-span-full rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+                    Cargando horarios disponibles...
+                  </div>
+                ) : (
+                  slotsForDay.map((s) => (
+                    <button
+                      key={s.time}
+                      disabled={!s.available}
+                      onClick={() => {
+                        setSelectedSlot(s);
+                        setStep("details");
+                      }}
+                      className={`
                                     relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all
                                     ${!s.available ? 'opacity-50 grayscale cursor-not-allowed border-gray-100 bg-gray-50' : 'border-gray-200 bg-white hover:border-primary hover:shadow-md cursor-pointer'}
                                 `}
-                  >
-                    <span className="text-lg font-bold text-gray-800">{s.time}</span>
-                    {s.demand === 'high' && <span className="text-[10px] uppercase font-bold text-orange-500 mt-1">Pocos cupos</span>}
-                  </button>
-                ))}
+                    >
+                      <span className="text-lg font-bold text-gray-800">{s.time}</span>
+                      {s.demand === 'high' && <span className="text-[10px] uppercase font-bold text-orange-500 mt-1">Pocos cupos</span>}
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           </motion.div>

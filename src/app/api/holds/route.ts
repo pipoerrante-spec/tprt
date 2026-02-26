@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { ensureDemoCoverageAndRules } from "@/lib/demo/availability";
 import { getEnv } from "@/lib/env";
 import { getRequestIp, rateLimit } from "@/lib/rate-limit";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -21,6 +22,11 @@ function mapHoldError(message?: string) {
   return { code: "hold_failed", status: 500 as const };
 }
 
+function shouldRetryWithDemoRules(message?: string) {
+  const m = message || "";
+  return !m || m.includes("tprt_slot_not_available") || m.includes("tprt_not_in_coverage");
+}
+
 export async function POST(req: Request) {
   const ip = getRequestIp(new Headers(req.headers));
   const limit = rateLimit(`hold:${ip}`, { windowMs: 10 * 60_000, max: 12 });
@@ -39,13 +45,22 @@ export async function POST(req: Request) {
 
   const env = getEnv();
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase.rpc("create_booking_hold", {
+  const payload = {
     p_service_id: parsed.data.serviceId,
     p_commune_id: parsed.data.communeId,
     p_date: parsed.data.date,
     p_time: parsed.data.time,
     p_ttl_minutes: env.TPRT_HOLD_TTL_MINUTES,
-  });
+  };
+
+  let { data, error } = await supabase.rpc("create_booking_hold", payload);
+
+  if ((error || !data?.[0]) && shouldRetryWithDemoRules(error?.message)) {
+    await ensureDemoCoverageAndRules(supabase, parsed.data.serviceId, parsed.data.communeId).catch(() => undefined);
+    const retry = await supabase.rpc("create_booking_hold", payload);
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error || !data?.[0]) {
     const mapped = mapHoldError(error?.message);
@@ -57,4 +72,3 @@ export async function POST(req: Request) {
     { status: 201, headers: { "Cache-Control": "no-store" } },
   );
 }
-

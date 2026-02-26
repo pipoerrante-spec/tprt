@@ -15,9 +15,11 @@ export async function GET() {
   if (error) {
     return NextResponse.json({ error: "catalog_unavailable" }, { status: 500 });
   }
-  const services = (data ?? []).map((s) => ({
+  const mapped = (data ?? []).map((s) => ({
     ...s,
     base_price: QA_SERVICE_PRICE_CLP,
   }));
+  const preferred = mapped.find((s) => s.name === "Revisión técnica inteligente");
+  const services = preferred ? [preferred] : mapped.slice(0, 1);
   return NextResponse.json({ services }, { status: 200, headers: { "Cache-Control": "no-store" } });
 }

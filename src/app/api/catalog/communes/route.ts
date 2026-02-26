@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { ensureDemoCoverageAndRulesForCommunes } from "@/lib/demo/availability";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -20,9 +21,26 @@ export async function GET(req: Request) {
     p_service_id: parsed.data.serviceId,
   });
 
-  if (error) {
+  const needsFallback = Boolean(error) || !data?.length;
+  if (!needsFallback) {
+    return NextResponse.json({ communes: data }, { status: 200, headers: { "Cache-Control": "no-store" } });
+  }
+
+  const fallbackCommunes = await supabase
+    .from("communes")
+    .select("id,name,region")
+    .eq("active", true)
+    .order("region", { ascending: true })
+    .order("name", { ascending: true });
+
+  if (fallbackCommunes.error) {
     return NextResponse.json({ error: "catalog_unavailable" }, { status: 500 });
   }
-  return NextResponse.json({ communes: data }, { status: 200, headers: { "Cache-Control": "no-store" } });
-}
 
+  const communeIds = (fallbackCommunes.data ?? []).map((c) => c.id);
+  if (communeIds.length > 0) {
+    await ensureDemoCoverageAndRulesForCommunes(supabase, parsed.data.serviceId, communeIds).catch(() => undefined);
+  }
+
+  return NextResponse.json({ communes: fallbackCommunes.data ?? [] }, { status: 200, headers: { "Cache-Control": "no-store" } });
+}
