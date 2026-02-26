@@ -26,6 +26,19 @@ function isUuid(v: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
 }
 
+async function getPaymentByToken(token: string) {
+  const supabase = getSupabaseAdmin();
+  const res = await supabase
+    .from("payments")
+    .select("id,booking_id")
+    .eq("provider", "transbank_webpay")
+    .eq("external_ref", token)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (res.error) return null;
+  return res.data?.[0] ?? null;
+}
+
 export async function POST(req: Request) {
   const env = getEnv();
   if (!env.TRANSBANK_COMMERCE_CODE || !env.TRANSBANK_API_KEY || !env.TRANSBANK_ENV) {
@@ -40,9 +53,11 @@ export async function POST(req: Request) {
 
   const tokenWs = form.get("token_ws");
   const tbkOrder = form.get("TBK_ORDEN_COMPRA");
+  const tbkSession = form.get("TBK_ID_SESION");
 
   const token = typeof tokenWs === "string" ? tokenWs : null;
   const maybePaymentId = typeof tbkOrder === "string" ? tbkOrder : null;
+  const maybeSessionPaymentId = typeof tbkSession === "string" ? tbkSession : null;
 
   const supabase = getSupabaseAdmin();
 
@@ -52,32 +67,51 @@ export async function POST(req: Request) {
 
   try {
     if (!token) {
-      if (maybePaymentId && isUuid(maybePaymentId)) {
+      const failedPaymentId = isUuid(String(maybeSessionPaymentId ?? ""))
+        ? String(maybeSessionPaymentId)
+        : isUuid(String(maybePaymentId ?? ""))
+          ? String(maybePaymentId)
+          : null;
+      if (failedPaymentId) {
         await supabase.rpc("set_payment_status", {
-          p_payment_id: maybePaymentId,
+          p_payment_id: failedPaymentId,
           p_status: "failed",
           p_external_ref: null,
         });
-        const pay = await supabase.from("payments").select("booking_id").eq("id", maybePaymentId).maybeSingle();
+        const pay = await supabase.from("payments").select("booking_id").eq("id", failedPaymentId).maybeSingle();
         if (pay.data?.booking_id) return redirectToConfirmation(origin, pay.data.booking_id);
       }
       return redirectToHelp(origin);
     }
 
     const committed = await tx.commit(token);
-    const paymentId = String((committed as { buy_order?: string }).buy_order ?? "");
-    const bookingId = isUuid(paymentId)
-      ? (
-          await supabase.from("payments").select("booking_id").eq("id", paymentId).maybeSingle()
-        ).data?.booking_id ?? null
-      : null;
+    const committedBuyOrder = String((committed as { buy_order?: string }).buy_order ?? "");
+    const committedSessionId = String((committed as { session_id?: string }).session_id ?? "");
+
+    let paymentId: string | null = null;
+    let bookingId: string | null = null;
+
+    if (isUuid(committedSessionId)) {
+      paymentId = committedSessionId;
+    } else if (isUuid(committedBuyOrder)) {
+      // Backwards compatibility for older transactions where buy_order carried payment UUID.
+      paymentId = committedBuyOrder;
+    } else {
+      const byToken = await getPaymentByToken(token);
+      paymentId = byToken?.id ?? null;
+      bookingId = byToken?.booking_id ?? null;
+    }
+
+    if (paymentId && !bookingId) {
+      bookingId = (await supabase.from("payments").select("booking_id").eq("id", paymentId).maybeSingle()).data?.booking_id ?? null;
+    }
 
     const status = (committed as { status?: string }).status ?? null;
     const responseCode = Number((committed as { response_code?: unknown }).response_code);
     const isPaid = status === "AUTHORIZED" && responseCode === 0;
     const mappedStatus = isPaid ? "paid" : "failed";
 
-    if (isUuid(paymentId)) {
+    if (paymentId && isUuid(paymentId)) {
       await supabase.rpc("set_payment_status", {
         p_payment_id: paymentId,
         p_status: mappedStatus,

@@ -2,6 +2,11 @@ import type { PaymentsProvider } from "@/lib/payments/types";
 import { getEnv } from "@/lib/env";
 import { Environment, Options, WebpayPlus } from "transbank-sdk";
 
+function toTransbankBuyOrder(paymentId: string) {
+  // Webpay Plus accepts max 26 chars for buy_order.
+  return `P${paymentId.replace(/-/g, "").slice(0, 25)}`;
+}
+
 export const transbankWebpayProvider: PaymentsProvider = {
   id: "transbank_webpay",
   async createCheckoutSession(input) {
@@ -18,7 +23,8 @@ export const transbankWebpayProvider: PaymentsProvider = {
     if (env.TRANSBANK_RETURN_SECRET) returnUrl.searchParams.set("secret", env.TRANSBANK_RETURN_SECRET);
 
     const tx = new WebpayPlus.Transaction(options);
-    const created = await tx.create(input.paymentId, input.bookingId, input.amountClp, returnUrl.toString());
+    const buyOrder = toTransbankBuyOrder(input.paymentId);
+    const created = await tx.create(buyOrder, input.paymentId, input.amountClp, returnUrl.toString());
 
     const redirect = new URL("/pago/webpay", origin);
     redirect.searchParams.set("token_ws", created.token);

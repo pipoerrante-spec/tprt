@@ -16,7 +16,7 @@ const envSchema = z.object({
   // Webpay (prepared; do not expose)
   TRANSBANK_COMMERCE_CODE: z.string().optional(),
   TRANSBANK_API_KEY: z.string().optional(),
-  TRANSBANK_ENV: z.enum(["integration", "production"]).optional(),
+  TRANSBANK_ENV: z.enum(["integration", "qa", "production"]).optional(),
   TRANSBANK_RETURN_SECRET: z.string().optional(),
 
   // Email (optional; default console)

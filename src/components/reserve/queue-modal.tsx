@@ -13,6 +13,7 @@ export function QueueModal({ onComplete }: QueueModalProps) {
     const [position, setPosition] = React.useState(0);
     const [totalInQueue, setTotalInQueue] = React.useState(0);
     const initialPosRef = React.useRef(0);
+    const queueTickMs = 300;
 
     React.useEffect(() => {
         // Randomize queue on mount
@@ -47,10 +48,10 @@ export function QueueModal({ onComplete }: QueueModalProps) {
                 }
                 return prev;
             });
-        }, 600);
+        }, queueTickMs);
 
         return () => clearInterval(interval);
-    }, []);
+    }, [queueTickMs]);
 
     React.useEffect(() => {
         if (progress >= 100) {

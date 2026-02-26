@@ -70,7 +70,7 @@ Notas:
 
 ## Pagos (producción)
 
-- **Webpay (Transbank)**: configura `TRANSBANK_COMMERCE_CODE`, `TRANSBANK_API_KEY`, `TRANSBANK_ENV` y opcional `TRANSBANK_RETURN_SECRET`.
+- **Webpay (Transbank)**: configura `TRANSBANK_COMMERCE_CODE`, `TRANSBANK_API_KEY`, `TRANSBANK_ENV` (`qa`/`integration`/`production`) y opcional `TRANSBANK_RETURN_SECRET`.
   - El redirect se hace vía `/pago/webpay` (POST a Webpay con `token_ws`).
   - El retorno/commit se procesa en `/api/webhooks/transbank`.
 - **Mercado Pago**: configura `MERCADOPAGO_ACCESS_TOKEN`.
