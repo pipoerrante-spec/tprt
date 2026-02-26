@@ -21,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Clock, CreditCard, Shield } from "lucide-react";
 import { normalizePlate } from "@/lib/vehicle/plate";
+import { DEMO_COUPON_CODE, DEMO_COUPON_DISCOUNT_PERCENT, applyDiscount, normalizeCouponCode } from "@/lib/pricing";
 
 type HoldPublic = {
   id: string;
@@ -50,6 +51,7 @@ const formSchema = z.object({
     .refine((v) => !v || /^\d{4}$/.test(v), "Año inválido"),
   address: z.string().trim().min(5, "Ingresa una dirección").max(160),
   notes: z.string().trim().max(500).optional(),
+  couponCode: z.string().trim().max(32).optional(),
   consentPrivacy: z.boolean().refine((v) => v === true, "Debes aceptar la política de privacidad"),
   consentSmsWhatsapp: z.boolean().optional(),
   provider: z.enum(["mock", "transbank_webpay", "flow", "mercadopago"]),
@@ -79,6 +81,7 @@ export function CheckoutClient({ holdId }: { holdId: string | null }) {
       vehicleYear: "",
       address: "",
       notes: "",
+      couponCode: "",
       consentPrivacy: false,
       consentSmsWhatsapp: false,
       provider: "mock",
@@ -90,6 +93,7 @@ export function CheckoutClient({ holdId }: { holdId: string | null }) {
   const consentSmsWhatsapp = useWatch({ control: form.control, name: "consentSmsWhatsapp" });
   const provider = useWatch({ control: form.control, name: "provider" });
   const vehiclePlate = useWatch({ control: form.control, name: "vehiclePlate" });
+  const couponCode = useWatch({ control: form.control, name: "couponCode" });
 
   const vehicleLookup = useMutation({
     mutationFn: async (plate: string) =>
@@ -152,6 +156,10 @@ export function CheckoutClient({ holdId }: { holdId: string | null }) {
         provider: string;
         redirectUrl: string;
         amountClp: number;
+        baseAmountClp: number;
+        discountAmountClp: number;
+        discountPercent: number;
+        couponCode: string | null;
       }>("/api/checkout/start", {
         method: "POST",
         body: JSON.stringify({
@@ -165,6 +173,7 @@ export function CheckoutClient({ holdId }: { holdId: string | null }) {
           vehicleYear: values.vehicleYear ? Number(values.vehicleYear) : null,
           address: values.address,
           notes: values.notes || null,
+          couponCode: values.couponCode || null,
           provider: values.provider,
         }),
       });
@@ -176,6 +185,7 @@ export function CheckoutClient({ holdId }: { holdId: string | null }) {
     onError: (e) => {
       const code = e instanceof ApiError ? e.code : e instanceof Error ? e.message : "checkout_failed";
       if (code === "hold_not_active") toast.error("Tu hold expiró. Vuelve a reservar una hora.");
+      else if (code === "invalid_coupon") toast.error("Cupón inválido. Usa un código válido.");
       else if (code.includes("not_implemented") || code.includes("not_configured")) {
         toast.error("Proveedor de pago no disponible en este entorno. Usa Mock en local.");
       } else toast.error("No pudimos iniciar el pago. Intenta nuevamente.");
@@ -183,6 +193,10 @@ export function CheckoutClient({ holdId }: { holdId: string | null }) {
   });
 
   const onSubmit = form.handleSubmit((values) => startCheckout.mutate(values));
+  const baseAmountClp = service?.base_price ?? 85_000;
+  const normalizedCouponCode = normalizeCouponCode(couponCode);
+  const previewDiscountPercent = normalizedCouponCode === DEMO_COUPON_CODE ? DEMO_COUPON_DISCOUNT_PERCENT : 0;
+  const previewAmounts = applyDiscount(baseAmountClp, previewDiscountPercent);
 
   if (!holdId) {
     return (
@@ -246,10 +260,22 @@ export function CheckoutClient({ holdId }: { holdId: string | null }) {
                 <div className="text-sm font-medium">{holdRow.time}</div>
               </div>
               {service ? (
-                <div className="sm:col-span-2">
-                  <div className="text-xs text-muted-foreground">Total</div>
-                  <div className="text-lg font-semibold tracking-tight">{formatClp(service.base_price)}</div>
-                </div>
+                <>
+                  <div className="sm:col-span-2 flex items-center justify-between text-sm">
+                    <div className="text-xs text-muted-foreground">Subtotal</div>
+                    <div className="font-medium">{formatClp(baseAmountClp)}</div>
+                  </div>
+                  <div className="sm:col-span-2 flex items-center justify-between text-sm">
+                    <div className="text-xs text-muted-foreground">Descuento</div>
+                    <div className={previewDiscountPercent > 0 ? "font-medium text-emerald-600" : "font-medium"}>
+                      {previewDiscountPercent > 0 ? `- ${formatClp(previewAmounts.discountAmountClp)}` : formatClp(0)}
+                    </div>
+                  </div>
+                  <div className="sm:col-span-2 flex items-center justify-between pt-1">
+                    <div className="text-xs text-muted-foreground">Total</div>
+                    <div className="text-lg font-semibold tracking-tight">{formatClp(previewAmounts.finalAmountClp)}</div>
+                  </div>
+                </>
               ) : null}
             </div>
           )}
@@ -330,6 +356,13 @@ export function CheckoutClient({ holdId }: { holdId: string | null }) {
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor="notes">Notas (opcional)</Label>
                 <Textarea id="notes" placeholder="Indicaciones, referencia, horario preferido…" {...form.register("notes")} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="couponCode">Cupón de descuento (opcional)</Label>
+                <Input id="couponCode" placeholder={`Ej: ${DEMO_COUPON_CODE}`} {...form.register("couponCode")} />
+                <div className="text-xs text-muted-foreground">
+                  Demo QA: usa <strong>{DEMO_COUPON_CODE}</strong> y aplica {DEMO_COUPON_DISCOUNT_PERCENT}% de descuento.
+                </div>
               </div>
             </div>
 

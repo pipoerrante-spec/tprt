@@ -4,13 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
-
-const links = [
-  { href: "/", label: "Inicio" },
-  { href: "/ayuda", label: "Ayuda" },
-];
-
 export function SiteNav() {
   const pathname = usePathname();
 
@@ -24,12 +17,12 @@ export function SiteNav() {
             <div className="flex h-12 w-12 items-center justify-center rounded-sm bg-primary/10 border border-primary">
               {/* Checkbox style mimic */}
               <div className="relative h-6 w-6 border-2 border-primary rounded-sm flex items-center justify-center">
-                <span className="text-[9px] font-bold text-destructive italic">tprt</span>
+                <span className="text-[9px] font-bold text-destructive italic">gvrt</span>
               </div>
             </div>
             <div className="flex flex-col">
               <span className="text-xl font-bold text-primary italic tracking-tight leading-none">
-                TPRT
+                GVRT
               </span>
               <span className="text-sm font-semibold text-gray-500 uppercase tracking-widest leading-none">
                 REVISIÓN TÉCNICA
@@ -59,7 +52,7 @@ export function SiteNav() {
               Plantas
             </Link>
             <Link href="/reservar" className="hover:text-gray-200 transition-colors whitespace-nowrap">
-              Reserve su hora PRT
+              Reservar hora
             </Link>
             <Link href="/ayuda" className="hover:text-gray-200 transition-colors whitespace-nowrap">
               Ayuda
@@ -70,4 +63,3 @@ export function SiteNav() {
     </header>
   );
 }
-

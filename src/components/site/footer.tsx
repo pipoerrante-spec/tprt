@@ -6,12 +6,11 @@ export function SiteFooter() {
     <footer className="w-full bg-muted border-t border-gray-200 mt-auto">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-sm">
-
           <div className="space-y-3">
-            <h3 className="font-bold text-primary">Sobre nosotros</h3>
+            <h3 className="font-bold text-primary">GVRT Revisión Técnica</h3>
             <ul className="space-y-2 text-gray-600">
-              <li><Link href="#" className="hover:underline">Quiénes somos</Link></li>
-              <li><Link href="#" className="hover:underline">Misión y Visión</Link></li>
+              <li>Gestión integral de revisión técnica vehicular.</li>
+              <li>Retiro, traslado y entrega en domicilio.</li>
             </ul>
           </div>
 
@@ -19,39 +18,33 @@ export function SiteFooter() {
             <h3 className="font-bold text-primary">Información</h3>
             <ul className="space-y-2 text-gray-600">
               <li><Link href="/calendario" className="hover:underline">Calendario</Link></li>
-              <li><Link href="/plantas" className="hover:underline">Plantas TPRT</Link></li>
-              <li><Link href="#" className="hover:underline">Tarifas</Link></li>
+              <li><Link href="/plantas" className="hover:underline">Plantas</Link></li>
+              <li><Link href="/terminos" className="hover:underline">Términos y Condiciones</Link></li>
             </ul>
           </div>
 
           <div className="space-y-3">
             <h3 className="font-bold text-primary">Contacto</h3>
             <ul className="space-y-2 text-gray-600">
-              <li>Mesa de Ayuda</li>
-              <li>contacto@tprt.cl</li>
+              <li>Correo: contacto@gvrt.cl</li>
+              <li>Sitio web: www.gvrt.cl</li>
             </ul>
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="h-10 w-10 bg-gray-300 rounded-full flex items-center justify-center text-xs text-center">
-                Logo Gob
-              </div>
-              <span className="text-xs text-gray-500 max-w-[120px]">
-                Ministerio de Transportes y Telecomunicaciones
-              </span>
-            </div>
+            <h3 className="font-bold text-primary">Importante</h3>
+            <p className="text-gray-600">
+              Al contratar el servicio aceptas los Términos y Condiciones de GVRT Revisión Técnica.
+            </p>
           </div>
-
         </div>
 
         <Separator className="my-6 bg-gray-300" />
 
         <div className="text-center text-xs text-gray-500">
-          © {new Date().getFullYear()} TPRT. Todos los derechos reservados.
+          © {new Date().getFullYear()} GVRT Revisión Técnica. Todos los derechos reservados.
         </div>
       </div>
     </footer>
   );
 }
-

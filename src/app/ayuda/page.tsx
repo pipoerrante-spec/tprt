@@ -1,29 +1,8 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Phone, Mail, Clock } from "lucide-react";
-
-const faqs = [
-  {
-    q: "¿Qué es un “hold” o bloqueo de cupo?",
-    a: "Cuando eliges una hora, la reservamos temporalmente por 7 minutos. Si no completas el pago, el cupo se libera automáticamente.",
-  },
-  {
-    q: "¿En qué zona horaria se muestran las horas?",
-    a: "Todas las horas se muestran en America/Santiago para evitar confusiones.",
-  },
-  {
-    q: "¿Puedo cancelar o reagendar?",
-    a: "Sí. Las condiciones exactas dependen del servicio y la comuna. Te recomendamos revisar el correo de confirmación y escribirnos con tu ID de reserva.",
-  },
-  {
-    q: "¿Cómo protegen mis datos?",
-    a: "Usamos validación y sanitización de inputs, endpoints server-side y guardamos llaves solo en backend. Puedes solicitar eliminación de datos según política.",
-  },
-];
 
 export default function HelpPage() {
   return (
@@ -32,7 +11,7 @@ export default function HelpPage() {
 
         {/* Header */}
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold text-primary">Centro de Ayuda</h1>
+          <h1 className="text-4xl font-bold text-primary">Centro de Ayuda GVRT</h1>
           <p className="text-xl text-gray-600">¿En qué podemos ayudarte hoy?</p>
         </div>
 
@@ -56,7 +35,7 @@ export default function HelpPage() {
             </CardHeader>
             <CardContent>
               <p className="text-gray-600 mb-2">Consultas generales y reclamos</p>
-              <p className="font-bold text-primary">contacto@tprt.cl</p>
+              <p className="font-bold text-primary">contacto@gvrt.cl</p>
             </CardContent>
           </Card>
 
@@ -113,6 +92,9 @@ export default function HelpPage() {
               <Link href="/reservar">Agendar Revisión</Link>
             </Button>
             <Button variant="outline" asChild>
+              <Link href="/terminos">Ver Términos</Link>
+            </Button>
+            <Button variant="outline" asChild>
               <Link href="/">Volver al Inicio</Link>
             </Button>
           </div>
@@ -122,4 +104,3 @@ export default function HelpPage() {
     </main>
   );
 }
-

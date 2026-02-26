@@ -14,13 +14,17 @@ declare
 begin
   insert into public.services (name, description, base_price, duration_minutes, active)
   values
-    ('Revisión técnica inteligente', 'Gestión completa para pasar la revisión técnica sin perder 3–5 horas: agenda, coordinación y seguimiento.', 34990, 60, true),
-    ('Gestoría + traslado', 'Vamos por tu vehículo y lo devolvemos (según comuna). Incluye coordinación y recordatorios.', 49990, 90, true)
+    ('Revisión técnica inteligente', 'Gestión completa para pasar la revisión técnica sin perder 3–5 horas: agenda, coordinación y seguimiento.', 85000, 60, true),
+    ('Gestoría + traslado', 'Vamos por tu vehículo y lo devolvemos (según comuna). Incluye coordinación y recordatorios.', 85000, 90, true)
   returning id into svc_rt;
 
   -- If the insert above inserted 2 rows, svc_rt is last; fetch explicitly.
   select id into svc_rt from public.services where name = 'Revisión técnica inteligente' limit 1;
   select id into svc_gest from public.services where name = 'Gestoría + traslado' limit 1;
+
+  update public.services
+  set base_price = 85000
+  where name in ('Revisión técnica inteligente', 'Gestoría + traslado');
 
   insert into public.communes (name, region, active)
   values
@@ -72,4 +76,3 @@ begin
 end $$;
 
 commit;
-

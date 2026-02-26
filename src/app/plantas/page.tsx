@@ -9,11 +9,11 @@ import { MapPin, Search } from "lucide-react";
 import Link from "next/link";
 
 const plantas = [
-    { id: 1, nombre: "TPRT San Dámaso - La Florida", direccion: "Av. La Florida 11550", comuna: "La Florida", estado: "Abierto" },
-    { id: 2, nombre: "TPRT Tüv Rheinland - Huechuraba", direccion: "Santa Marta 750", comuna: "Huechuraba", estado: "Abierto" },
-    { id: 3, nombre: "TPRT SGS - Quilicura", direccion: "Presidente Eduardo Frei Montalva 9800", comuna: "Quilicura", estado: "Concurrido" },
-    { id: 4, nombre: "TPRT Applus - Peñalolén", direccion: "Av. Quilín 5550", comuna: "Peñalolén", estado: "Abierto" },
-    { id: 5, nombre: "TPRT Inspectorate - Maipú", direccion: "Camino a Melipilla 15200", comuna: "Maipú", estado: "Cerrado" },
+    { id: 1, nombre: "GVRT San Dámaso - La Florida", direccion: "Av. La Florida 11550", comuna: "La Florida", estado: "Abierto" },
+    { id: 2, nombre: "GVRT Tüv Rheinland - Huechuraba", direccion: "Santa Marta 750", comuna: "Huechuraba", estado: "Abierto" },
+    { id: 3, nombre: "GVRT SGS - Quilicura", direccion: "Presidente Eduardo Frei Montalva 9800", comuna: "Quilicura", estado: "Concurrido" },
+    { id: 4, nombre: "GVRT Applus - Peñalolén", direccion: "Av. Quilín 5550", comuna: "Peñalolén", estado: "Abierto" },
+    { id: 5, nombre: "GVRT Inspectorate - Maipú", direccion: "Camino a Melipilla 15200", comuna: "Maipú", estado: "Cerrado" },
 ];
 
 export default function PlantasPage() {

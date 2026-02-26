@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiJson, ApiError } from "@/lib/api";
-import { addDaysIso, getSantiagoTodayIso, isoDateToLocalNoon, SANTIAGO_TZ, toIsoDate } from "@/lib/time";
+import { addDaysIso, getSantiagoTodayIso, isoDateToLocalNoon, toIsoDate } from "@/lib/time";
 import { Badge } from "@/components/ui/badge";
 import type { BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ import { Check, ChevronRight, Clock, MapPin, Sparkles, AlertCircle, CreditCard, 
 import { QueueModal } from "./queue-modal";
 import { UrgencyTimer } from "./urgency-timer";
 import { Label } from "@/components/ui/label";
+import { GVRT_TERMS_SECTIONS } from "@/lib/legal/terms";
 
 type Service = {
   id: string;
@@ -68,11 +70,14 @@ export function ReserveWizard() {
   const [step, setStep] = React.useState<Step>("queue");
   const [service, setService] = React.useState<Service | null>(null);
   const [commune, setCommune] = React.useState<Commune | null>(null);
-  const [communeQuery, setCommuneQuery] = React.useState("");
   const dateFrom = React.useMemo(() => getSantiagoTodayIso(), []);
   const dateTo = React.useMemo(() => addDaysIso(dateFrom, 14), [dateFrom]);
   const [selectedDate, setSelectedDate] = React.useState<Date>(() => isoDateToLocalNoon(dateFrom));
   const [selectedSlot, setSelectedSlot] = React.useState<Slot | null>(null);
+  const [termsAccepted, setTermsAccepted] = React.useState(false);
+  const [termsModalOpen, setTermsModalOpen] = React.useState(false);
+  const [termsChecked, setTermsChecked] = React.useState(false);
+  const [pendingService, setPendingService] = React.useState<Service | null>(null);
 
 
 
@@ -86,28 +91,7 @@ export function ReserveWizard() {
     queryFn: () => apiJson<{ services: Service[] }>("/api/catalog/services"),
   });
 
-  const SANTIAGO_COMMUNES = [
-    "Cerrillos", "Cerro Navia", "Conchalí", "El Bosque", "Estación Central", "Huechuraba",
-    "Independencia", "La Cisterna", "La Florida", "La Granja", "La Pintana", "La Reina",
-    "Las Condes", "Lo Barnechea", "Lo Espejo", "Lo Prado", "Macul", "Maipú", "Ñuñoa",
-    "Pedro Aguirre Cerda", "Peñalolén", "Providencia", "Pudahuel", "Quilicura", "Quinta Normal",
-    "Recoleta", "Renca", "San Joaquín", "San Miguel", "San Ramón", "Santiago", "Vitacura"
-  ];
-
-  // Fallback data in case API fails or is empty during dev
-  const fallbackServices: Service[] = [
-    {
-      id: "srv_premium_tprt",
-      name: "Revisión Técnica Inteligente",
-      description: "Gestión completa: Retiro, Revisión, Aprobación y Entrega a domicilio.",
-      base_price: 114260,
-      duration_minutes: 60
-    }
-  ];
-
-  const serviceList = (services.data?.services && services.data.services.length > 0)
-    ? services.data.services
-    : fallbackServices;
+  const serviceList = services.data?.services ?? [];
 
   const communes = useQuery({
     enabled: !!service,
@@ -162,16 +146,33 @@ export function ReserveWizard() {
   const slotsForDay = slotsByDate.get(selectedDateIso) ?? [];
   const availableDates = React.useMemo(() => new Set([...slotsByDate.keys()]), [slotsByDate]);
 
-  const filteredCommunes = React.useMemo(() => {
-    const list = communes.data?.communes ?? [];
-    const q = communeQuery.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter((c) => `${c.name} ${c.region}`.toLowerCase().includes(q));
-  }, [communes.data?.communes, communeQuery]);
-
   // Handler for Queue Completion
   const handleQueueComplete = () => {
     setStep("service");
+  };
+
+  const moveToCommuneStep = React.useCallback((selectedService: Service) => {
+    setService(selectedService);
+    setCommune(null);
+    setSelectedSlot(null);
+    setStep("commune");
+  }, []);
+
+  const handleServiceSelection = (selectedService: Service) => {
+    if (termsAccepted) {
+      moveToCommuneStep(selectedService);
+      return;
+    }
+    setPendingService(selectedService);
+    setTermsChecked(false);
+    setTermsModalOpen(true);
+  };
+
+  const acceptTermsAndContinue = () => {
+    if (!termsChecked || !pendingService) return;
+    setTermsAccepted(true);
+    setTermsModalOpen(false);
+    moveToCommuneStep(pendingService);
   };
 
   if (step === "queue") {
@@ -221,7 +222,7 @@ export function ReserveWizard() {
               serviceList.map((s) => (
                 <div
                   key={s.id}
-                  onClick={() => { setService(s); setCommune(null); setStep("commune"); }}
+                  onClick={() => handleServiceSelection(s)}
                   className="cursor-pointer group relative overflow-hidden rounded-xl border-2 border-gray-100 bg-white p-6 shadow-sm hover:border-primary hover:shadow-lg transition-all"
                 >
                   <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -254,17 +255,25 @@ export function ReserveWizard() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label className="text-base font-semibold">Selecciona tu comuna</Label>
-                <Select onValueChange={(val) => {
-                  setCommune({ id: val.toLowerCase(), name: val, region: "Metropolitana" });
-                  setStep("calendar");
-                }}>
+                <Select
+                  onValueChange={(val) => {
+                    const selected = (communes.data?.communes ?? []).find((c) => c.id === val);
+                    if (!selected) return;
+                    setCommune(selected);
+                    setStep("calendar");
+                  }}
+                >
                   <SelectTrigger className="h-14 text-lg bg-white border-2 border-gray-200 focus:ring-0 focus:border-primary">
                     <SelectValue placeholder="Buscar comuna..." />
                   </SelectTrigger>
                   <SelectContent className="max-h-[300px]">
-                    {SANTIAGO_COMMUNES.map((c) => (
-                      <SelectItem key={c} value={c} className="text-base py-3 cursor-pointer">
-                        {c}
+                    {communes.isLoading ? <SelectItem value="loading" disabled>Cargando comunas...</SelectItem> : null}
+                    {!communes.isLoading && (communes.data?.communes ?? []).length === 0 ? (
+                      <SelectItem value="empty" disabled>Sin comunas disponibles</SelectItem>
+                    ) : null}
+                    {(communes.data?.communes ?? []).map((c) => (
+                      <SelectItem key={c.id} value={c.id} className="text-base py-3 cursor-pointer">
+                        {c.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -452,6 +461,48 @@ export function ReserveWizard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {termsModalOpen ? (
+        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm p-4 flex items-center justify-center">
+          <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-gray-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-900">Aceptación de Términos y Condiciones</h3>
+              <p className="text-sm text-gray-600">GVRT Revisión Técnica</p>
+            </div>
+            <div className="px-6 py-5 space-y-4 max-h-[55vh] overflow-y-auto">
+              <p className="text-sm text-gray-700 leading-6">
+                Para continuar con la reserva debes aceptar los Términos y Condiciones del servicio.
+              </p>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-2">
+                <p className="text-sm font-semibold text-gray-900">{GVRT_TERMS_SECTIONS[0]?.title}</p>
+                <p className="text-sm text-gray-700 leading-6">{GVRT_TERMS_SECTIONS[0]?.paragraphs[0]}</p>
+                <p className="text-sm text-gray-700 leading-6">{GVRT_TERMS_SECTIONS[0]?.paragraphs[1]}</p>
+              </div>
+              <div className="text-sm text-gray-700 space-y-2">
+                <p>Puedes revisar el texto completo aquí:</p>
+                <Link href="/terminos" target="_blank" className="text-primary font-semibold underline underline-offset-2">
+                  Ver Términos y Condiciones completos
+                </Link>
+              </div>
+              <label className="flex items-start gap-3 rounded-xl border border-gray-200 p-3 bg-white">
+                <input
+                  type="checkbox"
+                  checked={termsChecked}
+                  onChange={(e) => setTermsChecked(e.target.checked)}
+                  className="mt-1 h-4 w-4"
+                />
+                <span className="text-sm text-gray-700">
+                  Declaro haber leído y acepto los Términos y Condiciones de GVRT Revisión Técnica.
+                </span>
+              </label>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-end gap-3">
+              <Button variant="outline" onClick={() => setTermsModalOpen(false)}>Cancelar</Button>
+              <Button onClick={acceptTermsAndContinue} disabled={!termsChecked}>Aceptar y continuar</Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

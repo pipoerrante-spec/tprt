@@ -5,6 +5,12 @@ import { getRequestOrigin } from "@/lib/http";
 import { getRequestIp, rateLimit } from "@/lib/rate-limit";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getPaymentsProvider } from "@/lib/payments/provider";
+import {
+  QA_SERVICE_PRICE_CLP,
+  applyDiscount,
+  getCouponDiscountPercent,
+  normalizeCouponCode,
+} from "@/lib/pricing";
 
 export const runtime = "nodejs";
 
@@ -19,6 +25,7 @@ const startSchema = z.object({
   vehicleYear: z.number().int().min(1950).max(new Date().getFullYear() + 1).optional().nullable(),
   address: z.string().trim().min(5).max(160),
   notes: z.string().trim().max(500).optional().nullable(),
+  couponCode: z.string().trim().max(32).optional().nullable(),
   provider: z.enum(["mock", "transbank_webpay", "flow", "mercadopago"]).optional(),
 });
 
@@ -94,7 +101,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "checkout_failed" }, { status: 500 });
   }
 
-  const amountClp = serviceRow.data.base_price;
+  const baseAmountClp = QA_SERVICE_PRICE_CLP;
+  const couponCode = normalizeCouponCode(parsed.data.couponCode);
+  const discountPercent = getCouponDiscountPercent(couponCode);
+  if (couponCode && discountPercent <= 0) {
+    return NextResponse.json({ error: "invalid_coupon" }, { status: 400 });
+  }
+  const { discountAmountClp, finalAmountClp } = applyDiscount(baseAmountClp, discountPercent);
+  const amountClp = finalAmountClp;
   const providerId = parsed.data.provider ?? env.TPRT_PAYMENTS_PROVIDER_ACTIVE;
   const provider = getPaymentsProvider(providerId);
 
@@ -131,7 +145,17 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json(
-    { bookingId, paymentId, provider: providerId, redirectUrl: session.redirectUrl, amountClp },
+    {
+      bookingId,
+      paymentId,
+      provider: providerId,
+      redirectUrl: session.redirectUrl,
+      amountClp,
+      baseAmountClp,
+      discountAmountClp,
+      discountPercent,
+      couponCode,
+    },
     { status: 200, headers: { "Cache-Control": "no-store" } },
   );
 }

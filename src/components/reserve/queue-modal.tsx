@@ -68,9 +68,9 @@ export function QueueModal({ onComplete }: QueueModalProps) {
                 animate={{ opacity: 1, scale: 1 }}
                 className="w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden"
             >
-                {/* Header Style PRT */}
+                {/* Header Style GVRT */}
                 <div className="bg-primary px-6 py-4 flex items-center justify-between">
-                    <span className="font-bold text-white tracking-widest text-lg">TPRT</span>
+                    <span className="font-bold text-white tracking-widest text-lg">GVRT</span>
                     <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></div>
                 </div>
 

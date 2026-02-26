@@ -19,9 +19,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TPRT — Revisión Técnica Inteligente",
+  title: "GVRT Revisión Técnica",
   description:
-    "Evita 3–5 horas. Agenda online, pago seguro y recordatorios para tu revisión técnica. Cobertura por comuna.",
+    "Gestión de revisión técnica vehicular con retiro, traslado y entrega a domicilio.",
 };
 
 export default function RootLayout({
