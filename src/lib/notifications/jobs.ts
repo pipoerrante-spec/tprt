@@ -27,7 +27,6 @@ function bookingServiceDateToUtc(date: string, time: string) {
 }
 
 export async function enqueueBookingPaidJobs(bookingId: string) {
-  const env = getEnv();
   const supabase = getSupabaseAdmin();
 
   const booking = await supabase.from("bookings").select("id,date,time").eq("id", bookingId).maybeSingle();
@@ -42,10 +41,8 @@ export async function enqueueBookingPaidJobs(bookingId: string) {
     { booking_id: bookingId, kind: "customer_confirmation_email", channel: "email", send_at: now.toISOString() },
     { booking_id: bookingId, kind: "ops_new_service_email", channel: "email", send_at: now.toISOString() },
     { booking_id: bookingId, kind: "customer_reminder_24h_email", channel: "email", send_at: sendAt.toISOString() },
+    { booking_id: bookingId, kind: "planilla_append", channel: "webhook", send_at: now.toISOString() },
   ];
-  if (env.TPRT_PLANILLA_WEBHOOK_URL) {
-    rows.push({ booking_id: bookingId, kind: "planilla_append", channel: "webhook", send_at: now.toISOString() });
-  }
 
   const upsert = await supabase.from("notification_jobs").upsert(rows, { onConflict: "booking_id,kind" });
   if (upsert.error) throw new Error("notification_jobs_upsert_failed");

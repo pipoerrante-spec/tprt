@@ -93,12 +93,12 @@ export async function sendBookingConfirmationEmail(bookingId: string) {
   const env = getEnv();
   const total = payment.data?.amount_clp ?? service.data?.base_price ?? 0;
   const whenUtc = bookingLocalDateTime(booking.data.date, booking.data.time);
-  const whenText = formatInTimeZone(whenUtc, TZ, "yyyy-MM-dd HH:mm");
+  const whenDateText = formatInTimeZone(whenUtc, TZ, "yyyy-MM-dd");
+  const whenTimeText = formatInTimeZone(whenUtc, TZ, "HH:mm");
 
   const vehicleText = [
     booking.data.vehicle_make,
     booking.data.vehicle_model,
-    booking.data.vehicle_year ? String(booking.data.vehicle_year) : null,
   ]
     .filter(Boolean)
     .join(" ");
@@ -110,7 +110,7 @@ export async function sendBookingConfirmationEmail(bookingId: string) {
       <p>Hemos recibido correctamente tu pago y tu solicitud de gestión de revisión técnica.</p>
       <p>📍 <b>Dirección de retiro:</b> ${booking.data.address}</p>
       <p>🚗 <b>Vehículo:</b> ${vehicleText || "—"}${booking.data.vehicle_plate ? ` – ${booking.data.vehicle_plate}` : ""}</p>
-      <p>📅 <b>Fecha programada:</b> ${whenText}</p>
+      <p>📅 <b>Fecha programada:</b> ${whenDateText} ${whenTimeText}</p>
       <p>Un operador se pondrá en contacto contigo el mismo día del servicio 15 minutos antes de llegar.</p>
       <p><b>🔎 Importante para el retiro:</b></p>
       <ul>
@@ -119,7 +119,7 @@ export async function sendBookingConfirmationEmail(bookingId: string) {
         <li>Padrón del vehículo</li>
         <li>Llaves disponibles</li>
       </ul>
-      <p>El operador te informará que tomará 4 fotos (delantera, trasera y laterales) para dejar constancia del estado actual de tu vehículo.</p>
+      <p>El operador le informará que tomará 4 fotos (delantera, trasera y laterales) para dejar constancia del estado actual de su vehículo.</p>
       <p>Ante cualquier duda puedes responder este correo${
         env.TPRT_SUPPORT_WHATSAPP ? ` o escribirnos a WhatsApp ${env.TPRT_SUPPORT_WHATSAPP}` : ""
       }.</p>
@@ -135,8 +135,11 @@ export async function sendBookingConfirmationEmail(bookingId: string) {
 
 export async function sendOperationsNewServiceEmail(bookingId: string) {
   const env = getEnv();
-  const opsList = (env.OPERATIONS_EMAILS || "")
-    .split(",")
+  const opsList = [
+    ...(env.OPERATIONS_EMAILS || "").split(","),
+    ...(env.TPRT_SUPPORT_EMAIL ? [env.TPRT_SUPPORT_EMAIL] : []),
+    ...(env.ADMIN_EMAILS || "").split(","),
+  ]
     .map((s) => s.trim())
     .filter(Boolean);
   if (opsList.length === 0) throw new Error("operations_emails_not_configured");
@@ -150,7 +153,8 @@ export async function sendOperationsNewServiceEmail(bookingId: string) {
   if (booking.error || !booking.data) throw new Error("booking_not_found");
 
   const whenUtc = bookingLocalDateTime(booking.data.date, booking.data.time);
-  const whenText = formatInTimeZone(whenUtc, TZ, "yyyy-MM-dd HH:mm");
+  const dateText = formatInTimeZone(whenUtc, TZ, "yyyy-MM-dd");
+  const timeText = formatInTimeZone(whenUtc, TZ, "HH:mm");
 
   const vehicleText = [
     booking.data.vehicle_make,
@@ -167,13 +171,14 @@ export async function sendOperationsNewServiceEmail(bookingId: string) {
       <ul>
         <li><b>Cliente:</b> ${booking.data.customer_name}</li>
         <li><b>Teléfono:</b> ${booking.data.phone}</li>
-        <li><b>Email:</b> ${booking.data.email}</li>
         <li><b>Dirección:</b> ${booking.data.address}</li>
         <li><b>Patente:</b> ${booking.data.vehicle_plate ?? "—"}</li>
-        <li><b>Vehículo:</b> ${vehicleText || "—"}</li>
-        <li><b>Fecha/Hora:</b> ${whenText}</li>
+        <li><b>Fecha:</b> ${dateText}</li>
+        <li><b>Hora solicitada:</b> ${timeText}</li>
         <li><b>Estado:</b> Pendiente asignación operador.</li>
       </ul>
+      <p><b>Vehículo:</b> ${vehicleText || "—"}</p>
+      <p><b>Email:</b> ${booking.data.email}</p>
       ${booking.data.notes ? `<p><b>Notas:</b> ${booking.data.notes}</p>` : ""}
       <p style="font-size:12px;color:#5b6777">Booking ID: ${booking.data.id}</p>
     </div>
