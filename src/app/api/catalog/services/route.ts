@@ -4,6 +4,10 @@ import { QA_SERVICE_PRICE_CLP } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 
+function toDisplayServiceName(name: string) {
+  return name.replace(/\s+inteligente\b/i, "").replace(/\s{2,}/g, " ").trim();
+}
+
 export async function GET() {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
@@ -17,9 +21,10 @@ export async function GET() {
   }
   const mapped = (data ?? []).map((s) => ({
     ...s,
+    name: toDisplayServiceName(s.name),
     base_price: QA_SERVICE_PRICE_CLP,
   }));
-  const preferred = mapped.find((s) => s.name === "Revisión técnica inteligente");
+  const preferred = mapped.find((s) => s.name.toLowerCase() === "revisión técnica");
   const services = preferred ? [preferred] : mapped.slice(0, 1);
   return NextResponse.json({ services }, { status: 200, headers: { "Cache-Control": "no-store" } });
 }

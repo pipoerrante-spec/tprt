@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Check, ChevronRight, Clock, MapPin, Sparkles, AlertCircle, CreditCard, ShieldCheck } from "lucide-react";
+import { Check, ChevronRight, Clock, MapPin, AlertCircle, CreditCard, ShieldCheck } from "lucide-react";
 import { QueueModal } from "./queue-modal";
 import { UrgencyTimer } from "./urgency-timer";
 import { Label } from "@/components/ui/label";
@@ -134,6 +134,8 @@ export function ReserveWizard() {
   });
 
   const serviceList = services.data?.services ?? [];
+  const serviceGridClass =
+    serviceList.length <= 1 ? "mx-auto grid w-full max-w-xl gap-6" : "grid gap-6 md:grid-cols-2 lg:grid-cols-3";
 
   const communes = useQuery({
     enabled: !!service,
@@ -272,7 +274,7 @@ export function ReserveWizard() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+            className={serviceGridClass}
           >
             {services.isLoading && !serviceList.length ? (
               Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-48 rounded-xl" />)
@@ -283,8 +285,11 @@ export function ReserveWizard() {
                   onClick={() => handleServiceSelection(s)}
                   className="cursor-pointer group relative overflow-hidden rounded-xl border-2 border-gray-100 bg-white p-6 shadow-sm hover:border-primary hover:shadow-lg transition-all"
                 >
-                  <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <Sparkles className="h-24 w-24 text-primary" />
+                  <div className="pointer-events-none absolute inset-0">
+                    <div className="absolute -right-8 -top-8 h-36 w-36 rounded-full bg-gradient-to-br from-primary/20 via-sky-400/10 to-transparent blur-2xl" />
+                    <div className="absolute right-4 top-4 rounded-lg border border-primary/20 bg-white/80 px-2 py-1 text-[10px] font-bold tracking-[0.2em] text-primary">
+                      GVRT
+                    </div>
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 mb-2">{s.name}</h3>
                   <p className="text-sm text-gray-500 mb-4">{s.description}</p>
