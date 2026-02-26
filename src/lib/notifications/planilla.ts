@@ -3,8 +3,6 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export async function appendBookingToPlanilla(bookingId: string) {
   const env = getEnv();
-  if (!env.TPRT_PLANILLA_WEBHOOK_URL) throw new Error("planilla_not_configured");
-
   const supabase = getSupabaseAdmin();
 
   const booking = await supabase
@@ -43,6 +41,15 @@ export async function appendBookingToPlanilla(bookingId: string) {
     payment: payment.data ?? null,
   };
 
+  if (!env.TPRT_PLANILLA_WEBHOOK_URL) {
+    await supabase.from("webhooks_log").insert({
+      provider: "planilla_pending_config",
+      payload_json: payload,
+      processed: false,
+    });
+    return;
+  }
+
   const res = await fetch(env.TPRT_PLANILLA_WEBHOOK_URL, {
     method: "POST",
     headers: {
@@ -56,4 +63,3 @@ export async function appendBookingToPlanilla(bookingId: string) {
     throw new Error(`planilla_webhook_failed:${res.status}:${text.slice(0, 200)}`);
   }
 }
-

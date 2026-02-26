@@ -139,6 +139,7 @@ export async function sendOperationsNewServiceEmail(bookingId: string) {
     ...(env.OPERATIONS_EMAILS || "").split(","),
     ...(env.TPRT_SUPPORT_EMAIL ? [env.TPRT_SUPPORT_EMAIL] : []),
     ...(env.ADMIN_EMAILS || "").split(","),
+    "contacto@gvrt.cl",
   ]
     .map((s) => s.trim())
     .filter(Boolean);
