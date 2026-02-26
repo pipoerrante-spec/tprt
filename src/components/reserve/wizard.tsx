@@ -65,6 +65,36 @@ function demandBadge(demand: Slot["demand"]) {
   return { label: "Disponible", variant: "success" as BadgeVariant };
 }
 
+function buildDemoSlotsForDate(dateIso: string): Slot[] {
+  const [y, m, d] = dateIso.split("-").map((v) => Number(v));
+  const date = new Date(Date.UTC(y ?? 0, (m ?? 1) - 1, d ?? 1, 12, 0, 0));
+  const dow = date.getUTCDay();
+  const isWeekday = dow >= 1 && dow <= 5;
+  const isSaturday = dow === 6;
+  if (!isWeekday && !isSaturday) return [];
+
+  const startHour = isSaturday ? 10 : 9;
+  const endHour = isSaturday ? 14 : 18;
+  const capacity = isSaturday ? 1 : 2;
+  const slots: Slot[] = [];
+  for (let hour = startHour; hour < endHour; hour += 1) {
+    for (const minute of [0, 30]) {
+      const hh = String(hour).padStart(2, "0");
+      const mm = String(minute).padStart(2, "0");
+      slots.push({
+        date: dateIso,
+        time: `${hh}:${mm}:00`,
+        capacity,
+        reserved: 0,
+        remaining: capacity,
+        demand: "low",
+        available: true,
+      });
+    }
+  }
+  return slots;
+}
+
 export function ReserveWizard() {
   const router = useRouter();
   const [step, setStep] = React.useState<Step>("queue");
@@ -144,6 +174,11 @@ export function ReserveWizard() {
 
   const selectedDateIso = React.useMemo(() => toIsoDate(selectedDate), [selectedDate]);
   const slotsForDay = slotsByDate.get(selectedDateIso) ?? [];
+  const showClientDemoSlots = !availability.isLoading && slotsForDay.length === 0;
+  const visibleSlots = React.useMemo(
+    () => (showClientDemoSlots ? buildDemoSlotsForDate(selectedDateIso) : slotsForDay),
+    [showClientDemoSlots, selectedDateIso, slotsForDay],
+  );
   const availableDates = React.useMemo(() => new Set([...slotsByDate.keys()]), [slotsByDate]);
 
   // Handler for Queue Completion
@@ -324,18 +359,28 @@ export function ReserveWizard() {
             <div className="lg:col-span-7 space-y-4">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-bold text-lg">Horarios Disponibles</h3>
-                <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full animate-pulse">
-                  ● En tiempo real
-                </span>
+                {showClientDemoSlots ? (
+                  <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded-full">
+                    ● Horarios demo
+                  </span>
+                ) : (
+                  <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full animate-pulse">
+                    ● En tiempo real
+                  </span>
+                )}
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {slotsForDay.length === 0 ? (
+                {availability.isLoading ? (
                   <div className="col-span-full rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
                     Cargando horarios disponibles...
                   </div>
+                ) : visibleSlots.length === 0 ? (
+                  <div className="col-span-full rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
+                    No hay horarios para este día.
+                  </div>
                 ) : (
-                  slotsForDay.map((s) => (
+                  visibleSlots.map((s) => (
                     <button
                       key={s.time}
                       disabled={!s.available}
