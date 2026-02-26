@@ -171,6 +171,8 @@ export function ReserveWizard() {
       const code = e instanceof ApiError ? e.code : "hold_failed";
       if (code === "slot_full") toast.error("Ese cupo acaba de agotarse. Elige otra hora.");
       else if (code === "slot_not_available") toast.error("Ese horario no está disponible. Prueba otro.");
+      else if (code === "not_in_coverage") toast.error("La comuna seleccionada quedó fuera de cobertura. Elige otra.");
+      else if (code === "rate_limited") toast.error("Demasiados intentos. Espera 1 minuto y vuelve a intentar.");
       else toast.error("No pudimos bloquear el cupo. Intenta nuevamente.");
     },
   });

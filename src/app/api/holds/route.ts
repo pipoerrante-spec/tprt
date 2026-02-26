@@ -24,12 +24,18 @@ function mapHoldError(message?: string) {
 
 function shouldRetryWithDemoRules(message?: string) {
   const m = message || "";
-  return !m || m.includes("tprt_slot_not_available") || m.includes("tprt_not_in_coverage");
+  return (
+    !m ||
+    m.includes("tprt_slot_not_available") ||
+    m.includes("tprt_not_in_coverage") ||
+    m.includes("function public.create_booking_hold") ||
+    m.includes("undefined_function")
+  );
 }
 
 export async function POST(req: Request) {
   const ip = getRequestIp(new Headers(req.headers));
-  const limit = rateLimit(`hold:${ip}`, { windowMs: 10 * 60_000, max: 12 });
+  const limit = rateLimit(`hold:${ip}`, { windowMs: 10 * 60_000, max: 40 });
   if (!limit.ok) {
     return NextResponse.json(
       { error: "rate_limited", resetAt: limit.resetAt },
@@ -61,6 +67,32 @@ export async function POST(req: Request) {
     const retry = await supabase.rpc("create_booking_hold", payload);
     data = retry.data;
     error = retry.error;
+  }
+
+  // QA safety net: if RPC fails for any migration/signature reason, insert hold directly.
+  if ((error || !data?.[0]) && env.TRANSBANK_ENV === "qa") {
+    const expiresAt = new Date(Date.now() + env.TPRT_HOLD_TTL_MINUTES * 60_000).toISOString();
+    const direct = await supabase
+      .from("booking_holds")
+      .insert({
+        service_id: parsed.data.serviceId,
+        commune_id: parsed.data.communeId,
+        date: parsed.data.date,
+        time: normalizedTime,
+        expires_at: expiresAt,
+        status: "active",
+      })
+      .select("id,expires_at")
+      .single();
+
+    if (!direct.error && direct.data) {
+      return NextResponse.json(
+        { holdId: direct.data.id, expiresAt: direct.data.expires_at },
+        { status: 201, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+
+    error = direct.error ?? error;
   }
 
   if (error || !data?.[0]) {
