@@ -39,6 +39,23 @@ type HoldPublic = {
   status: "active" | "expired" | "converted" | "canceled";
 };
 
+type HoldForQa = {
+  id: string;
+  service_id: string;
+  commune_id: string;
+  date: string;
+  time: string;
+  expires_at: string;
+  status: "active" | "expired" | "converted" | "canceled";
+  customer_name: string | null;
+  email: string | null;
+  phone: string | null;
+  vehicle_plate: string | null;
+  vehicle_make: string | null;
+  vehicle_model: string | null;
+  vehicle_year: number | null;
+};
+
 async function getHoldPublicSafe(supabase: ReturnType<typeof getSupabaseAdmin>, holdId: string) {
   const rpc = await supabase.rpc("get_booking_hold_public", { p_hold_id: holdId });
   if (!rpc.error && rpc.data?.[0]) {
@@ -62,6 +79,113 @@ async function getHoldPublicSafe(supabase: ReturnType<typeof getSupabaseAdmin>, 
     return { hold: null, error: "hold_unavailable" as const };
   }
   return { hold: (fallback.data as HoldPublic | null) ?? null, error: null as null | "hold_unavailable" };
+}
+
+async function createBookingFromHoldQaFallback(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  holdId: string,
+  input: {
+    customerName: string;
+    email: string;
+    phone: string;
+    vehiclePlate: string;
+    vehicleMake: string;
+    vehicleModel: string;
+    vehicleYear: number | null;
+    address: string;
+    notes: string | null;
+  },
+) {
+  const nowIso = new Date().toISOString();
+
+  const holdRes = await supabase
+    .from("booking_holds")
+    .select(
+      "id,service_id,commune_id,date,time,expires_at,status,customer_name,email,phone,vehicle_plate,vehicle_make,vehicle_model,vehicle_year",
+    )
+    .eq("id", holdId)
+    .maybeSingle();
+  if (holdRes.error || !holdRes.data) return { bookingId: null as string | null, error: "hold_not_found" as const };
+
+  const hold = holdRes.data as HoldForQa;
+  if (hold.status !== "active" || hold.expires_at <= nowIso) return { bookingId: null as string | null, error: "hold_not_active" as const };
+
+  const patch = await supabase
+    .from("booking_holds")
+    .update({
+      customer_name: input.customerName,
+      email: input.email,
+      phone: input.phone,
+      vehicle_plate: input.vehiclePlate,
+      vehicle_make: input.vehicleMake,
+      vehicle_model: input.vehicleModel,
+      vehicle_year: input.vehicleYear ?? null,
+    })
+    .eq("id", holdId)
+    .eq("status", "active")
+    .gt("expires_at", nowIso);
+  if (patch.error) return { bookingId: null as string | null, error: "checkout_failed" as const };
+
+  // In QA/demo we convert hold first to avoid counting both hold+booking in capacity checks.
+  const convert = await supabase
+    .from("booking_holds")
+    .update({ status: "converted" })
+    .eq("id", holdId)
+    .eq("status", "active")
+    .gt("expires_at", nowIso)
+    .select("id")
+    .maybeSingle();
+  if (convert.error || !convert.data) {
+    const existing = await supabase
+      .from("bookings")
+      .select("id")
+      .eq("hold_id", holdId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existing.error || !existing.data?.id) return { bookingId: null as string | null, error: "hold_not_active" as const };
+    return { bookingId: existing.data.id as string, error: null as null };
+  }
+
+  const freshHoldRes = await supabase
+    .from("booking_holds")
+    .select("service_id,commune_id,date,time,customer_name,email,phone,vehicle_plate,vehicle_make,vehicle_model,vehicle_year")
+    .eq("id", holdId)
+    .maybeSingle();
+  if (freshHoldRes.error || !freshHoldRes.data) return { bookingId: null as string | null, error: "checkout_failed" as const };
+  const fresh = freshHoldRes.data as Omit<HoldForQa, "id" | "expires_at" | "status">;
+
+  const created = await supabase
+    .from("bookings")
+    .insert({
+      hold_id: holdId,
+      service_id: fresh.service_id,
+      commune_id: fresh.commune_id,
+      date: fresh.date,
+      time: fresh.time,
+      customer_name: fresh.customer_name ?? input.customerName,
+      email: fresh.email ?? input.email,
+      phone: fresh.phone ?? input.phone,
+      address: input.address.trim(),
+      notes: input.notes ?? null,
+      vehicle_plate: fresh.vehicle_plate ?? input.vehiclePlate,
+      vehicle_make: fresh.vehicle_make ?? input.vehicleMake,
+      vehicle_model: fresh.vehicle_model ?? input.vehicleModel,
+      vehicle_year: fresh.vehicle_year ?? input.vehicleYear ?? null,
+      status: "pending_payment",
+    })
+    .select("id")
+    .single();
+
+  if (created.error || !created.data?.id) {
+    await supabase.from("booking_holds").update({ status: "active" }).eq("id", holdId).eq("status", "converted");
+    const message = created.error?.message || "";
+    if (message.includes("tprt_slot_full")) return { bookingId: null as string | null, error: "slot_full" as const };
+    if (message.includes("tprt_slot_not_available")) return { bookingId: null as string | null, error: "slot_not_available" as const };
+    return { bookingId: null as string | null, error: "checkout_failed" as const };
+  }
+
+  return { bookingId: created.data.id as string, error: null as null };
 }
 
 export async function POST(req: Request) {
@@ -129,12 +253,39 @@ export async function POST(req: Request) {
     if (booking.error || !booking.data) {
       const message = booking.error?.message || "";
       if (message.includes("tprt_hold_not_active")) return NextResponse.json({ error: "hold_not_active" }, { status: 409 });
-      if (message.includes("tprt_slot_full")) return NextResponse.json({ error: "slot_full" }, { status: 409 });
-      if (message.includes("tprt_slot_not_available")) return NextResponse.json({ error: "slot_not_available" }, { status: 409 });
-      return NextResponse.json({ error: "checkout_failed" }, { status: 500 });
+      if ((message.includes("tprt_slot_full") || message.includes("tprt_slot_not_available")) && env.TRANSBANK_ENV === "qa") {
+        const qaFallback = await createBookingFromHoldQaFallback(supabase, parsed.data.holdId, {
+          customerName: parsed.data.customerName,
+          email: parsed.data.email,
+          phone: parsed.data.phone,
+          vehiclePlate: parsed.data.vehiclePlate,
+          vehicleMake: parsed.data.vehicleMake,
+          vehicleModel: parsed.data.vehicleModel,
+          vehicleYear: parsed.data.vehicleYear ?? null,
+          address: parsed.data.address,
+          notes: parsed.data.notes ?? null,
+        });
+        if (!qaFallback.error && qaFallback.bookingId) {
+          bookingId = qaFallback.bookingId;
+        } else if (qaFallback.error === "hold_not_active") {
+          return NextResponse.json({ error: "hold_not_active" }, { status: 409 });
+        } else if (qaFallback.error === "slot_full") {
+          return NextResponse.json({ error: "slot_full" }, { status: 409 });
+        } else if (qaFallback.error === "slot_not_available") {
+          return NextResponse.json({ error: "slot_not_available" }, { status: 409 });
+        } else if (qaFallback.error) {
+          return NextResponse.json({ error: qaFallback.error }, { status: 500 });
+        }
+      } else if (message.includes("tprt_slot_full")) {
+        return NextResponse.json({ error: "slot_full" }, { status: 409 });
+      } else if (message.includes("tprt_slot_not_available")) {
+        return NextResponse.json({ error: "slot_not_available" }, { status: 409 });
+      } else {
+        return NextResponse.json({ error: "checkout_failed" }, { status: 500 });
+      }
+    } else {
+      bookingId = booking.data as unknown as string;
     }
-
-    bookingId = booking.data as unknown as string;
   } else {
     return NextResponse.json({ error: "hold_not_active" }, { status: 409 });
   }
