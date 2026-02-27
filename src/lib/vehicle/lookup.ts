@@ -19,6 +19,15 @@ function readYear(v: unknown) {
   return null;
 }
 
+function readNestedString(root: unknown, path: string[]) {
+  let node: unknown = root;
+  for (const key of path) {
+    if (!node || typeof node !== "object") return null;
+    node = (node as Record<string, unknown>)[key];
+  }
+  return readString(node);
+}
+
 function walkObject(root: unknown, visit: (obj: Record<string, unknown>) => void) {
   if (!root || typeof root !== "object") return;
   const stack: unknown[] = [root];
@@ -45,9 +54,19 @@ function parseProviderJson(json: unknown) {
   let year: number | null = null;
 
   walkObject(json, (r) => {
-    if (!make) make = readString(r.make ?? r.marca ?? r.brand ?? r.fabricante);
-    if (!model) model = readString(r.model ?? r.modelo ?? r.version ?? r.versión);
-    if (!year) year = readYear(r.year ?? r.anio ?? r.año ?? r.vehicle_year);
+    if (!make) {
+      make =
+        readString(r.make ?? r.marca ?? r.fabricante ?? r.brand_name ?? r.brandName) ??
+        readNestedString(r.brand, ["name"]) ??
+        readNestedString(r, ["model", "brand", "name"]);
+    }
+    if (!model) {
+      model =
+        readString(r.model ?? r.modelo ?? r.model_name ?? r.modelName) ??
+        readNestedString(r.model, ["name"]) ??
+        readString(r.version ?? r.versión);
+    }
+    if (!year) year = readYear(r.year ?? r.anio ?? r.año ?? r.vehicle_year ?? r.model_year ?? r.modelYear);
   });
 
   return { make, model, year };

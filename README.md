@@ -66,7 +66,8 @@ Notas:
 - Emails reales: set `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM` y `OPERATIONS_EMAILS` (separados por coma).
 - Recordatorio 24h: se encola como `notification_jobs` y se procesa vía `/api/cron/notifications` (proteger con `TPRT_CRON_SECRET`).
 - Planilla: `TPRT_PLANILLA_WEBHOOK_URL` permite enviar un payload para Zapier/Make/Google Sheets al confirmar pago.
-- Patente → marca/modelo/año: endpoint `/api/vehicle/lookup` (configurable con `VEHICLE_LOOKUP_PROVIDER=http` + `VEHICLE_LOOKUP_HTTP_URL`).
+- Patente → marca/modelo/año: endpoint `/api/vehicle/lookup` (configurable con `VEHICLE_LOOKUP_PROVIDER=http|getapi_patente`).
+  - Para `getapi_patente`, usa una API key real de getapi.cl (la key demo pública devuelve `403` fuera de su web).
 
 ## Pagos (producción)
 
