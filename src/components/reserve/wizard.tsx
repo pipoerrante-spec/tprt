@@ -257,6 +257,7 @@ export function ReserveWizard() {
         body: JSON.stringify({ plate }),
       }),
     onSuccess: ({ vehicle }, vars) => {
+      if (vehicle.plate && vehicle.plate !== patent) setPatent(vehicle.plate);
       if (vars.force) {
         setVehicleMake(vehicle.make ?? "");
         setVehicleModel(vehicle.model ?? "");

@@ -53,7 +53,6 @@ const formSchema = z.object({
   notes: z.string().trim().max(500).optional(),
   couponCode: z.string().trim().max(32).optional(),
   consentPrivacy: z.boolean().refine((v) => v === true, "Debes aceptar la política de privacidad"),
-  consentSmsWhatsapp: z.boolean().optional(),
   provider: z.enum(["transbank_webpay", "mercadopago"]),
 });
 
@@ -97,7 +96,6 @@ export function CheckoutClient({
       notes: "",
       couponCode: normalizedInitialCoupon ?? "",
       consentPrivacy: false,
-      consentSmsWhatsapp: false,
       provider: "transbank_webpay",
     },
     mode: "onBlur",
@@ -179,7 +177,6 @@ export function CheckoutClient({
   }, [form]);
 
   const consentPrivacy = useWatch({ control: form.control, name: "consentPrivacy" });
-  const consentSmsWhatsapp = useWatch({ control: form.control, name: "consentSmsWhatsapp" });
   const provider = useWatch({ control: form.control, name: "provider" });
   const vehiclePlate = useWatch({ control: form.control, name: "vehiclePlate" });
   const couponCode = useWatch({ control: form.control, name: "couponCode" });
@@ -280,6 +277,12 @@ export function CheckoutClient({
       const code = e instanceof ApiError ? e.code : e instanceof Error ? e.message : "checkout_failed";
       if (code === "hold_not_active" || code === "hold_not_found" || code === "hold_unavailable") {
         toast.error("Tu bloqueo ya no está disponible. Vuelve al carrito y genera un nuevo cupo.");
+      }
+      else if (code === "slot_full") {
+        toast.error("Ese horario se llenó mientras avanzabas. Elige otro cupo para continuar.");
+      }
+      else if (code === "slot_not_available") {
+        toast.error("Ese horario ya no está disponible. Vuelve al carrito y selecciona otro.");
       }
       else if (code === "invalid_coupon") toast.error("Cupón inválido. Usa un código válido.");
       else if (code.includes("not_implemented") || code.includes("not_configured")) {
@@ -489,16 +492,6 @@ export function CheckoutClient({
                   {form.formState.errors.consentPrivacy ? (
                     <div className="text-xs text-rose-200">{form.formState.errors.consentPrivacy.message}</div>
                   ) : null}
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Checkbox
-                  checked={consentSmsWhatsapp ?? false}
-                  onCheckedChange={(v) => form.setValue("consentSmsWhatsapp", v === true)}
-                />
-                <div className="space-y-1">
-                  <div className="text-sm font-medium">Quiero recordatorios por SMS/WhatsApp (opcional)</div>
-                  <div className="text-xs text-muted-foreground">Podemos contactarte solo para esta reserva.</div>
                 </div>
               </div>
             </div>

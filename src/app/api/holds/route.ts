@@ -33,6 +33,20 @@ function shouldRetryWithDemoRules(message?: string) {
   );
 }
 
+function shouldUseQaDirectInsert(message?: string) {
+  const m = message || "";
+  if (!m) return false;
+  if (m.includes("tprt_slot_full") || m.includes("tprt_slot_not_available") || m.includes("tprt_not_in_coverage")) {
+    return false;
+  }
+  return (
+    m.includes("function public.create_booking_hold") ||
+    m.includes("undefined_function") ||
+    m.includes("does not exist") ||
+    m.includes("No function matches")
+  );
+}
+
 export async function POST(req: Request) {
   const ip = getRequestIp(new Headers(req.headers));
   const limit = rateLimit(`hold:${ip}`, { windowMs: 10 * 60_000, max: 40 });
@@ -70,7 +84,7 @@ export async function POST(req: Request) {
   }
 
   // QA safety net: if RPC fails for any migration/signature reason, insert hold directly.
-  if ((error || !data?.[0]) && env.TRANSBANK_ENV === "qa") {
+  if ((error || !data?.[0]) && env.TRANSBANK_ENV === "qa" && shouldUseQaDirectInsert(error?.message)) {
     const expiresAt = new Date(Date.now() + env.TPRT_HOLD_TTL_MINUTES * 60_000).toISOString();
     const direct = await supabase
       .from("booking_holds")

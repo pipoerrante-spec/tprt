@@ -6,8 +6,20 @@ export type VehicleLookupResult = {
   make: string | null;
   model: string | null;
   year: number | null;
+  version: string | null;
+  color: string | null;
+  vinNumber: string | null;
+  engineNumber: string | null;
+  engine: string | null;
+  fuel: string | null;
+  transmission: string | null;
+  doors: number | null;
+  vehicleType: string | null;
+  monthRT: string | null;
   source: "none" | "http" | "getapi_patente";
 };
+
+type VehicleLookupDetails = Omit<VehicleLookupResult, "plate" | "source">;
 
 function readString(v: unknown) {
   return typeof v === "string" && v.trim() ? v.trim() : null;
@@ -16,6 +28,12 @@ function readString(v: unknown) {
 function readYear(v: unknown) {
   if (typeof v === "number" && v >= 1900 && v <= 2100) return v;
   if (typeof v === "string" && /^\d{4}$/.test(v.trim())) return Number(v.trim());
+  return null;
+}
+
+function readInt(v: unknown) {
+  if (typeof v === "number" && Number.isInteger(v)) return v;
+  if (typeof v === "string" && /^\d+$/.test(v.trim())) return Number(v.trim());
   return null;
 }
 
@@ -72,20 +90,109 @@ function parseProviderJson(json: unknown) {
   return { make, model, year };
 }
 
+const EMPTY_DETAILS: VehicleLookupDetails = {
+  make: null,
+  model: null,
+  year: null,
+  version: null,
+  color: null,
+  vinNumber: null,
+  engineNumber: null,
+  engine: null,
+  fuel: null,
+  transmission: null,
+  doors: null,
+  vehicleType: null,
+  monthRT: null,
+};
+
+function parseGetapiDetails(json: unknown): VehicleLookupDetails {
+  if (!json || typeof json !== "object") return { ...EMPTY_DETAILS };
+  const root = json as Record<string, unknown>;
+  const data = (root.data && typeof root.data === "object" ? root.data : root) as Record<string, unknown>;
+
+  const fallback = parseProviderJson(json);
+
+  return {
+    make: readNestedString(data, ["model", "brand", "name"]) ?? fallback?.make ?? null,
+    model: readNestedString(data, ["model", "name"]) ?? fallback?.model ?? null,
+    year: readYear(data.year) ?? fallback?.year ?? null,
+    version: readString(data.version),
+    color: readString(data.color),
+    vinNumber: readString(data.vinNumber),
+    engineNumber: readString(data.engineNumber),
+    engine: readString(data.engine),
+    fuel: readString(data.fuel),
+    transmission: readString(data.transmission),
+    doors: readInt(data.doors),
+    vehicleType: readNestedString(data, ["model", "typeVehicle", "name"]),
+    monthRT: readString(data.monthRT),
+  };
+}
+
+function mapLetterToDigit(input: string) {
+  const map: Record<string, string> = {
+    I: "1",
+    L: "1",
+    O: "0",
+    Q: "0",
+    S: "5",
+    B: "8",
+    Z: "2",
+    G: "6",
+  };
+  return map[input] ?? input;
+}
+
+function buildGetapiFallbackCandidates(plate: string) {
+  const candidates = new Set<string>();
+  const addCandidate = (prefixLen: number) => {
+    if (plate.length <= prefixLen) return;
+    const prefix = plate.slice(0, prefixLen);
+    const suffix = plate.slice(prefixLen);
+    if (!/[A-Z]/.test(suffix)) return;
+    const normalizedSuffix = suffix
+      .split("")
+      .map((ch) => mapLetterToDigit(ch))
+      .join("");
+    if (normalizedSuffix !== suffix) candidates.add(prefix + normalizedSuffix);
+  };
+
+  // Common Chile formats.
+  addCandidate(4); // ABCD12
+  addCandidate(2); // AB1234
+
+  return [...candidates];
+}
+
+async function fetchGetapiPlate(plate: string, apiKey?: string) {
+  const url = `https://chile.getapi.cl/v1/vehicles/plate/${encodeURIComponent(plate)}`;
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      ...(apiKey ? { "x-api-key": apiKey } : null),
+    },
+    cache: "no-store",
+  });
+  const json = await res.json().catch(() => null);
+  return { ok: res.ok, status: res.status, json };
+}
+
 export async function lookupVehicleByPlate(inputPlate: string): Promise<VehicleLookupResult> {
   const env = getEnv();
   const plate = normalizePlate(inputPlate);
   if (!isLikelyChilePlate(plate)) {
-    return { plate, make: null, model: null, year: null, source: env.VEHICLE_LOOKUP_PROVIDER };
+    return { plate, ...EMPTY_DETAILS, source: env.VEHICLE_LOOKUP_PROVIDER };
   }
 
   if (env.VEHICLE_LOOKUP_PROVIDER === "none") {
-    return { plate, make: null, model: null, year: null, source: "none" };
+    return { plate, ...EMPTY_DETAILS, source: "none" };
   }
 
   if (env.VEHICLE_LOOKUP_PROVIDER === "http") {
     if (!env.VEHICLE_LOOKUP_HTTP_URL) {
-      return { plate, make: null, model: null, year: null, source: "http" };
+      return { plate, ...EMPTY_DETAILS, source: "http" };
     }
 
     const url = new URL(env.VEHICLE_LOOKUP_HTTP_URL);
@@ -100,36 +207,47 @@ export async function lookupVehicleByPlate(inputPlate: string): Promise<VehicleL
       cache: "no-store",
     });
     if (!res.ok) {
-      return { plate, make: null, model: null, year: null, source: "http" };
-    }
-    const json = await res.json().catch(() => null);
-    const parsed = parseProviderJson(json);
-    return { plate, make: parsed?.make ?? null, model: parsed?.model ?? null, year: parsed?.year ?? null, source: "http" };
-  }
-
-  if (env.VEHICLE_LOOKUP_PROVIDER === "getapi_patente") {
-    const url = `https://chile.getapi.cl/v1/vehicles/plate/${encodeURIComponent(plate)}`;
-    const res = await fetch(url, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        ...(env.GETAPI_PATENTE_API_KEY ? { "x-api-key": env.GETAPI_PATENTE_API_KEY } : null),
-      },
-      cache: "no-store",
-    });
-    if (!res.ok) {
-      return { plate, make: null, model: null, year: null, source: "getapi_patente" };
+      return { plate, ...EMPTY_DETAILS, source: "http" };
     }
     const json = await res.json().catch(() => null);
     const parsed = parseProviderJson(json);
     return {
       plate,
+      ...EMPTY_DETAILS,
       make: parsed?.make ?? null,
       model: parsed?.model ?? null,
       year: parsed?.year ?? null,
-      source: "getapi_patente",
+      source: "http",
     };
   }
 
-  return { plate, make: null, model: null, year: null, source: "none" };
+  if (env.VEHICLE_LOOKUP_PROVIDER === "getapi_patente") {
+    const primary = await fetchGetapiPlate(plate, env.GETAPI_PATENTE_API_KEY);
+    if (primary.ok) {
+      const parsed = parseGetapiDetails(primary.json);
+      return {
+        plate,
+        ...parsed,
+        source: "getapi_patente",
+      };
+    }
+
+    // If provider rejects format (e.g. SBGY6I vs SBGY61), retry with common visual substitutions.
+    if (primary.status === 422 || primary.status === 404) {
+      for (const candidate of buildGetapiFallbackCandidates(plate)) {
+        const retry = await fetchGetapiPlate(candidate, env.GETAPI_PATENTE_API_KEY);
+        if (!retry.ok) continue;
+        const parsed = parseGetapiDetails(retry.json);
+        return {
+          plate: candidate,
+          ...parsed,
+          source: "getapi_patente",
+        };
+      }
+    }
+
+    return { plate, ...EMPTY_DETAILS, source: "getapi_patente" };
+  }
+
+  return { plate, ...EMPTY_DETAILS, source: "none" };
 }

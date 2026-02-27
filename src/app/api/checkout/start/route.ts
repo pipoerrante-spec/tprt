@@ -129,6 +129,8 @@ export async function POST(req: Request) {
     if (booking.error || !booking.data) {
       const message = booking.error?.message || "";
       if (message.includes("tprt_hold_not_active")) return NextResponse.json({ error: "hold_not_active" }, { status: 409 });
+      if (message.includes("tprt_slot_full")) return NextResponse.json({ error: "slot_full" }, { status: 409 });
+      if (message.includes("tprt_slot_not_available")) return NextResponse.json({ error: "slot_not_available" }, { status: 409 });
       return NextResponse.json({ error: "checkout_failed" }, { status: 500 });
     }
 
