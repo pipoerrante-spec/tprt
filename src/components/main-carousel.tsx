@@ -39,9 +39,14 @@ export function MainCarousel() {
 
                 {/* Slide 2: Coverage/Safety */}
                 <div className="relative flex-[0_0_100%] h-full min-w-0">
-                    <div
-                        className="absolute inset-0 bg-cover bg-center opacity-80"
-                        style={{ backgroundImage: "url('/images/banner-status.png')" }}
+                    <video
+                        className="absolute inset-0 h-full w-full object-cover opacity-80"
+                        src="/prt.mp4"
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        preload="metadata"
                     />
                     <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent flex items-center">
                         <div className="mx-auto max-w-7xl px-6 w-full">
