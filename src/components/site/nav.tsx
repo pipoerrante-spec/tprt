@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+
 export function SiteNav() {
   const pathname = usePathname();
 
@@ -30,11 +30,6 @@ export function SiteNav() {
             </div>
           </Link>
 
-          <div className="hidden sm:flex gap-4">
-            <Button asChild variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white">
-              <Link href="/auth/login">Acceso Clientes</Link>
-            </Button>
-          </div>
         </div>
       </div>
 

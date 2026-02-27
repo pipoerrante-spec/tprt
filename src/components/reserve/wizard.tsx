@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -22,11 +23,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Check, ChevronRight, Clock, MapPin, AlertCircle, CreditCard, ShieldCheck } from "lucide-react";
+import { Check, ChevronRight, Clock, MapPin, AlertCircle, CreditCard, ShieldCheck, ScanLine } from "lucide-react";
 import { QueueModal } from "./queue-modal";
 import { UrgencyTimer } from "./urgency-timer";
 import { Label } from "@/components/ui/label";
 import { GVRT_TERMS_SECTIONS } from "@/lib/legal/terms";
+import { isLikelyChilePlate, normalizePlate } from "@/lib/vehicle/plate";
 import {
   DEMO_COUPON_CODE,
   DEMO_COUPON_DISCOUNT_PERCENT,
@@ -109,6 +111,10 @@ function normalizeSlotTime(time: string) {
   return time.slice(0, 5);
 }
 
+function isValidEmail(input: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.trim());
+}
+
 export function ReserveWizard() {
   const router = useRouter();
   const [step, setStep] = React.useState<Step>("queue");
@@ -128,8 +134,15 @@ export function ReserveWizard() {
 
   // Form Data
   const [patent, setPatent] = React.useState("");
+  const [customerName, setCustomerName] = React.useState("");
+  const [phone, setPhone] = React.useState("");
   const [address, setAddress] = React.useState("");
   const [email, setEmail] = React.useState("");
+  const [vehicleMake, setVehicleMake] = React.useState("");
+  const [vehicleModel, setVehicleModel] = React.useState("");
+  const [vehicleYear, setVehicleYear] = React.useState("");
+  const [notes, setNotes] = React.useState("");
+  const lastLookupPlateRef = React.useRef("");
 
   const services = useQuery({
     queryKey: ["catalog", "services"],
@@ -167,13 +180,20 @@ export function ReserveWizard() {
       }),
     onSuccess: (data) => {
       const normalizedCoupon = normalizeCouponCode(couponCode);
+      const normalizedPatent = normalizePlate(patent);
       if (typeof window !== "undefined") {
         window.localStorage.setItem(
           CHECKOUT_PREFILL_KEY,
           JSON.stringify({
+            customerName: customerName.trim(),
             email: email.trim(),
-            vehiclePlate: patent.trim().toUpperCase(),
+            phone: phone.trim(),
+            vehiclePlate: normalizedPatent,
+            vehicleMake: vehicleMake.trim(),
+            vehicleModel: vehicleModel.trim(),
+            vehicleYear: vehicleYear.trim(),
             address: address.trim(),
+            notes: notes.trim(),
             couponCode: normalizedCoupon ?? "",
             provider: "transbank_webpay",
           }),
@@ -221,6 +241,48 @@ export function ReserveWizard() {
     () => applyDiscount(service?.base_price ?? 85_000, discountPercent),
     [service?.base_price, discountPercent],
   );
+  const plateTypographyClass =
+    patent.length >= 8
+      ? "text-4xl tracking-[0.12em]"
+      : patent.length >= 7
+        ? "text-5xl tracking-[0.16em]"
+        : "text-6xl tracking-[0.22em]";
+
+  const plateLookup = useMutation({
+    mutationFn: async ({ plate }: { plate: string; force: boolean }) =>
+      apiJson<{
+        vehicle: { plate: string; make: string | null; model: string | null; year: number | null; source: string };
+      }>("/api/vehicle/lookup", {
+        method: "POST",
+        body: JSON.stringify({ plate }),
+      }),
+    onSuccess: ({ vehicle }, vars) => {
+      if (vars.force) {
+        setVehicleMake(vehicle.make ?? "");
+        setVehicleModel(vehicle.model ?? "");
+        setVehicleYear(vehicle.year ? String(vehicle.year) : "");
+        if (vehicle.make || vehicle.model || vehicle.year) toast.success("Datos del vehículo cargados.");
+        else toast.error("No encontramos datos para esa patente.");
+        return;
+      }
+      if (vehicle.make && !vehicleMake) setVehicleMake(vehicle.make);
+      if (vehicle.model && !vehicleModel) setVehicleModel(vehicle.model);
+      if (vehicle.year && !vehicleYear) setVehicleYear(String(vehicle.year));
+    },
+    onError: () => toast.error("No pudimos consultar la patente."),
+  });
+
+  React.useEffect(() => {
+    const normalized = normalizePlate(patent);
+    if (normalized.length < 5 || !isLikelyChilePlate(normalized)) return;
+    if (lastLookupPlateRef.current === normalized) return;
+    const t = setTimeout(() => {
+      lastLookupPlateRef.current = normalized;
+      plateLookup.mutate({ plate: normalized, force: false });
+    }, 450);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patent]);
 
   // Handler for Queue Completion
   const handleQueueComplete = () => {
@@ -249,6 +311,46 @@ export function ReserveWizard() {
     setTermsAccepted(true);
     setTermsModalOpen(false);
     moveToCommuneStep(pendingService);
+  };
+
+  const readPlateFromInput = () => {
+    const normalized = normalizePlate(patent);
+    if (normalized.length < 5) {
+      toast.error("Ingresa primero la patente para consultarla.");
+      return;
+    }
+    setPatent(normalized);
+    plateLookup.mutate({ plate: normalized, force: true });
+  };
+
+  const handleConfirmAndPay = () => {
+    if (!selectedSlot) return;
+    const normalizedPatent = normalizePlate(patent);
+    if (!isLikelyChilePlate(normalizedPatent)) {
+      toast.error("Ingresa una patente válida.");
+      return;
+    }
+    if (!customerName.trim() || customerName.trim().length < 2) {
+      toast.error("Ingresa el nombre del cliente.");
+      return;
+    }
+    if (!phone.trim() || phone.trim().length < 7) {
+      toast.error("Ingresa un teléfono válido.");
+      return;
+    }
+    if (!address.trim() || address.trim().length < 5) {
+      toast.error("Ingresa la dirección de retiro.");
+      return;
+    }
+    if (!isValidEmail(email)) {
+      toast.error("Ingresa un email válido.");
+      return;
+    }
+    if (!vehicleMake.trim() || !vehicleModel.trim()) {
+      toast.error("Completa marca y modelo del vehículo.");
+      return;
+    }
+    createHold.mutate({ date: selectedSlot.date, time: normalizeSlotTime(selectedSlot.time) });
   };
 
   if (step === "queue") {
@@ -465,34 +567,67 @@ export function ReserveWizard() {
                 <Card className="border-0 shadow-md">
                   <CardHeader>
                     <CardTitle>Datos del Vehículo</CardTitle>
-                    <CardDescription>Ingresa los datos para generar tu reserva</CardDescription>
+                    <CardDescription>Completa aquí todo el formulario. En checkout solo confirmas y pagas.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {/* Patente Visual */}
                     <div className="space-y-3">
-                      <Label className="text-xs uppercase font-bold tracking-wider text-gray-500">Patente Vehículo *</Label>
+                      <div className="flex items-center justify-between gap-3">
+                        <Label className="text-xs uppercase font-bold tracking-wider text-gray-500">Patente Vehículo *</Label>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={readPlateFromInput}
+                          disabled={plateLookup.isPending}
+                        >
+                          <ScanLine className="h-4 w-4" />
+                          {plateLookup.isPending ? "Consultando..." : "Leer mi patente"}
+                        </Button>
+                      </div>
                       <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          {/* Chile decorative strip */}
-                        </div>
-                        <div className="border-4 border-black rounded-lg p-1 bg-white shadow-sm inline-block max-w-[280px]">
-                          <div className="border border-gray-200 rounded flex items-center relative h-20 w-full px-4 bg-white">
+                        <div className="border-4 border-black rounded-lg p-1 bg-white shadow-sm w-full max-w-[560px]">
+                          <div className="border border-gray-200 rounded flex items-center relative h-28 w-full px-6 bg-white">
                             {/* Simulated Chile Plate Design */}
-                            <div className="absolute left-2 top-2 bottom-2 w-8 flex flex-col justify-between items-center opacity-30">
-                              <span className="text-[8px] font-bold">CHILE</span>
+                            <div className="absolute left-3 top-3 bottom-3 w-10 flex flex-col justify-between items-center opacity-30">
+                              <span className="text-[9px] font-bold">CHILE</span>
                             </div>
                             <Input
                               value={patent}
-                              onChange={(e) => setPatent(e.target.value.toUpperCase())}
-                              maxLength={6}
-                              className="border-0 text-center text-5xl font-mono font-black tracking-[0.2em] outline-none shadow-none focus-visible:ring-0 uppercase placeholder:opacity-20 h-full w-full"
-                              placeholder="AB-CD-12"
+                              onChange={(e) => setPatent(normalizePlate(e.target.value))}
+                              maxLength={8}
+                              className={`border-0 text-center font-mono font-black outline-none shadow-none focus-visible:ring-0 uppercase placeholder:opacity-20 h-full w-full ${plateTypographyClass}`}
+                              placeholder="ABCD12"
                             />
                           </div>
-                          <div className="text-center text-[10px] font-bold tracking-widest mt-1">CHILE</div>
+                          <div className="text-center text-xs font-bold tracking-[0.25em] mt-1">CHILE</div>
                         </div>
                         <p className="text-xs text-gray-400 mt-2">Ingresa tu patente sin guiones</p>
+                        {plateLookup.isPending ? (
+                          <p className="text-xs text-primary mt-1">Buscando automáticamente marca, modelo y año…</p>
+                        ) : null}
                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Nombre completo *</Label>
+                      <Input
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        placeholder="Nombre y apellido"
+                        className="h-12 bg-gray-50"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Teléfono *</Label>
+                      <Input
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="+56 9 1234 5678"
+                        className="h-12 bg-gray-50"
+                        inputMode="tel"
+                      />
                     </div>
 
                     {/* Comuna Solicitante */}
@@ -513,13 +648,55 @@ export function ReserveWizard() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Email (para prellenar checkout)</Label>
+                      <Label>Email *</Label>
                       <Input
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="correo@ejemplo.cl"
                         className="h-12 bg-gray-50"
+                      />
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Marca *</Label>
+                        <Input
+                          value={vehicleMake}
+                          onChange={(e) => setVehicleMake(e.target.value)}
+                          placeholder="Toyota"
+                          className="h-12 bg-gray-50"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Modelo *</Label>
+                        <Input
+                          value={vehicleModel}
+                          onChange={(e) => setVehicleModel(e.target.value)}
+                          placeholder="Yaris"
+                          className="h-12 bg-gray-50"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Año (opcional)</Label>
+                      <Input
+                        value={vehicleYear}
+                        onChange={(e) => setVehicleYear(e.target.value.replace(/[^0-9]/g, "").slice(0, 4))}
+                        placeholder="2018"
+                        className="h-12 bg-gray-50"
+                        inputMode="numeric"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Notas (opcional)</Label>
+                      <Textarea
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Referencia para retiro, disponibilidad, etc."
+                        className="bg-gray-50 min-h-24"
                       />
                     </div>
                   </CardContent>
@@ -567,7 +744,7 @@ export function ReserveWizard() {
 
                     <Button
                       className="w-full h-14 text-lg font-bold bg-green-600 hover:bg-green-700 shadow-lg mt-4"
-                      onClick={() => createHold.mutate({ date: selectedSlot.date, time: normalizeSlotTime(selectedSlot.time) })}
+                      onClick={handleConfirmAndPay}
                       disabled={createHold.isPending}
                     >
                       {createHold.isPending ? "Procesando..." : "Confirmar y Pagar"}
