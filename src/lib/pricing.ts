@@ -1,6 +1,6 @@
 export const QA_SERVICE_PRICE_CLP = 85_000;
 export const DEMO_COUPON_CODE = "DEMO2026";
-export const DEMO_COUPON_DISCOUNT_PERCENT = 20;
+export const DEMO_COUPON_DISCOUNT_PERCENT = 99;
 
 export function normalizeCouponCode(raw?: string | null) {
   const value = (raw ?? "").trim().toUpperCase();

@@ -53,6 +53,19 @@ export default function HomePage() {
       <div className="bg-gray-100 py-8">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 space-y-8">
 
+          {/* Pain Points Section */}
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-200 text-center max-w-4xl mx-auto space-y-6">
+            <h2 className="text-3xl font-bold text-gray-800">
+              ¿Cansado de perder tu día en la Revisión Técnica?
+            </h2>
+            <p className="text-lg text-gray-600">
+              Sabemos que tu tiempo es valioso. Filas interminables, pedir permisos en el trabajo y el estrés de realizar un trámite tedioso no deberían ser parte de tu rutina.
+            </p>
+            <p className="text-lg font-semibold text-primary">
+              Déjalo en nuestras manos. Retiramos, tramitamos y devolvemos tu auto listo.
+            </p>
+          </div>
+
           {/* 3. Banners Portal Style */}
           <div className="grid md:grid-cols-2 gap-6">
             {/* Banner 1: Statistics -> Service Pitch */}
@@ -61,7 +74,7 @@ export default function HomePage() {
                 <BarChart3 className="h-full w-full text-white" />
               </div>
               <div className="relative z-10 text-white space-y-2">
-                <h3 className="text-2xl font-bold italic">¿Sin tiempo?</h3>
+                <h3 className="text-2xl font-bold">¿Sin tiempo?</h3>
                 <p className="text-blue-100 text-sm max-w-[250px]">Nosotros lo hacemos por ti. Retiro y entrega a domicilio.</p>
                 <Button size="sm" variant="secondary" className="mt-2 font-bold hover:bg-white hover:text-primary">VER SERVICIO</Button>
               </div>
@@ -73,7 +86,7 @@ export default function HomePage() {
                 <CheckCircle className="h-32 w-32 text-destructive" />
               </div>
               <div className="relative z-10 text-gray-800 space-y-2">
-                <h3 className="text-2xl font-bold italic text-primary">Estado de mi Auto</h3>
+                <h3 className="text-2xl font-bold text-primary">Estado de mi Auto</h3>
                 <p className="text-gray-500 text-sm max-w-[250px]">Ingresa tu patente y revisamos si podemos ayudarte hoy.</p>
                 <VehicleStatusWidget />
               </div>

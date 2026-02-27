@@ -1,12 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const DEFAULT_RULES = [
-  { weekday: 1, start_time: "09:00:00", end_time: "18:00:00", slot_minutes: 30, capacity: 2 },
-  { weekday: 2, start_time: "09:00:00", end_time: "18:00:00", slot_minutes: 30, capacity: 2 },
-  { weekday: 3, start_time: "09:00:00", end_time: "18:00:00", slot_minutes: 30, capacity: 2 },
-  { weekday: 4, start_time: "09:00:00", end_time: "18:00:00", slot_minutes: 30, capacity: 2 },
-  { weekday: 5, start_time: "09:00:00", end_time: "18:00:00", slot_minutes: 30, capacity: 2 },
-  { weekday: 6, start_time: "10:00:00", end_time: "14:00:00", slot_minutes: 30, capacity: 1 },
+  { weekday: 1, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 2 },
+  { weekday: 2, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 2 },
+  { weekday: 3, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 2 },
+  { weekday: 4, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 2 },
+  { weekday: 5, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 2 },
+  { weekday: 6, start_time: "08:30:00", end_time: "14:30:00", slot_minutes: 120, capacity: 1 },
 ];
 
 export async function ensureDemoCoverageAndRules(
@@ -83,25 +83,22 @@ export function buildDemoSlots(dateFromIso: string, dateToIso: string): DemoSlot
     const isSaturday = dow === 6;
 
     if (isWeekday || isSaturday) {
-      const startHour = isSaturday ? 10 : 9;
+      const startHour = 8;
       const endHour = isSaturday ? 14 : 18;
       const capacity = isSaturday ? 1 : 2;
 
-      for (let hour = startHour; hour < endHour; hour += 1) {
-        for (const minute of [0, 30]) {
-          if (hour === endHour - 1 && minute > 30) continue;
-          const hh = String(hour).padStart(2, "0");
-          const mm = String(minute).padStart(2, "0");
-          slots.push({
-            date: isoDate,
-            time: `${hh}:${mm}:00`,
-            capacity,
-            reserved: 0,
-            remaining: capacity,
-            demand: "low",
-            available: true,
-          });
-        }
+      for (let hour = startHour; hour < endHour; hour += 2) {
+        const hh = String(hour).padStart(2, "0");
+        const mm = "30";
+        slots.push({
+          date: isoDate,
+          time: `${hh}:${mm}:00`,
+          capacity,
+          reserved: 0,
+          remaining: capacity,
+          demand: "low",
+          available: true,
+        });
       }
     }
 

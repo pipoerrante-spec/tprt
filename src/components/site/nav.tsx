@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { Ticket } from "lucide-react";
 
 export function SiteNav() {
   const pathname = usePathname();
@@ -14,11 +15,8 @@ export function SiteNav() {
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/" className="flex items-center gap-3">
             {/* PRT-style Logo Wrapper */}
-            <div className="flex h-12 w-12 items-center justify-center rounded-sm bg-primary/10 border border-primary">
-              {/* Checkbox style mimic */}
-              <div className="relative h-6 w-6 border-2 border-primary rounded-sm flex items-center justify-center">
-                <span className="text-[9px] font-bold text-destructive italic">gvrt</span>
-              </div>
+            <div className="flex h-12 w-12 items-center justify-center rounded-sm bg-destructive/10 border border-destructive">
+              <Ticket className="h-6 w-6 text-destructive" />
             </div>
             <div className="flex flex-col">
               <span className="text-xl font-bold text-primary italic tracking-tight leading-none">

@@ -85,24 +85,22 @@ function buildDemoSlotsForDate(dateIso: string): Slot[] {
   const isSaturday = dow === 6;
   if (!isWeekday && !isSaturday) return [];
 
-  const startHour = isSaturday ? 10 : 9;
+  const startHour = 8;
   const endHour = isSaturday ? 14 : 18;
   const capacity = isSaturday ? 1 : 2;
   const slots: Slot[] = [];
-  for (let hour = startHour; hour < endHour; hour += 1) {
-    for (const minute of [0, 30]) {
-      const hh = String(hour).padStart(2, "0");
-      const mm = String(minute).padStart(2, "0");
-      slots.push({
-        date: dateIso,
-        time: `${hh}:${mm}:00`,
-        capacity,
-        reserved: 0,
-        remaining: capacity,
-        demand: "low",
-        available: true,
-      });
-    }
+  for (let hour = startHour; hour < endHour; hour += 2) {
+    const hh = String(hour).padStart(2, "0");
+    const mm = "30";
+    slots.push({
+      date: dateIso,
+      time: `${hh}:${mm}:00`,
+      capacity,
+      reserved: 0,
+      remaining: capacity,
+      demand: "low",
+      available: true,
+    });
   }
   return slots;
 }
