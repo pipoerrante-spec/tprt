@@ -7,6 +7,13 @@ import { Environment, Options, WebpayPlus } from "transbank-sdk";
 
 export const runtime = "nodejs";
 
+type TransbankReturnParams = {
+  tokenWs: string | null;
+  tbkToken: string | null;
+  tbkOrder: string | null;
+  tbkSession: string | null;
+};
+
 function checkSecret(req: Request) {
   const env = getEnv();
   if (!env.TRANSBANK_RETURN_SECRET) return true;
@@ -39,7 +46,32 @@ async function getPaymentByToken(token: string) {
   return res.data?.[0] ?? null;
 }
 
-export async function POST(req: Request) {
+function pickString(value: FormDataEntryValue | string | null) {
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+async function readReturnParams(req: Request): Promise<TransbankReturnParams | null> {
+  const url = new URL(req.url);
+  if (req.method === "GET") {
+    return {
+      tokenWs: pickString(url.searchParams.get("token_ws")),
+      tbkToken: pickString(url.searchParams.get("TBK_TOKEN")),
+      tbkOrder: pickString(url.searchParams.get("TBK_ORDEN_COMPRA")),
+      tbkSession: pickString(url.searchParams.get("TBK_ID_SESION")),
+    };
+  }
+
+  const form = await req.formData().catch(() => null);
+  if (!form) return null;
+  return {
+    tokenWs: pickString(form.get("token_ws")),
+    tbkToken: pickString(form.get("TBK_TOKEN")),
+    tbkOrder: pickString(form.get("TBK_ORDEN_COMPRA")),
+    tbkSession: pickString(form.get("TBK_ID_SESION")),
+  };
+}
+
+async function handleTransbankReturn(req: Request) {
   const env = getEnv();
   if (!env.TRANSBANK_COMMERCE_CODE || !env.TRANSBANK_API_KEY || !env.TRANSBANK_ENV) {
     return NextResponse.json({ error: "transbank_not_configured" }, { status: 501 });
@@ -47,18 +79,10 @@ export async function POST(req: Request) {
   if (!checkSecret(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const origin = getRequestOrigin(req);
+  const params = await readReturnParams(req);
+  if (!params) return NextResponse.json({ error: "invalid_request" }, { status: 400 });
 
-  const form = await req.formData().catch(() => null);
-  if (!form) return NextResponse.json({ error: "invalid_request" }, { status: 400 });
-
-  const tokenWs = form.get("token_ws");
-  const tbkOrder = form.get("TBK_ORDEN_COMPRA");
-  const tbkSession = form.get("TBK_ID_SESION");
-
-  const token = typeof tokenWs === "string" ? tokenWs : null;
-  const maybePaymentId = typeof tbkOrder === "string" ? tbkOrder : null;
-  const maybeSessionPaymentId = typeof tbkSession === "string" ? tbkSession : null;
-
+  const token = params.tokenWs;
   const supabase = getSupabaseAdmin();
 
   const envMode = env.TRANSBANK_ENV === "production" ? Environment.Production : Environment.Integration;
@@ -67,20 +91,37 @@ export async function POST(req: Request) {
 
   try {
     if (!token) {
-      const failedPaymentId = isUuid(String(maybeSessionPaymentId ?? ""))
-        ? String(maybeSessionPaymentId)
-        : isUuid(String(maybePaymentId ?? ""))
-          ? String(maybePaymentId)
+      const failedPaymentId = isUuid(String(params.tbkSession ?? ""))
+        ? String(params.tbkSession)
+        : isUuid(String(params.tbkOrder ?? ""))
+          ? String(params.tbkOrder)
           : null;
-      if (failedPaymentId) {
+      const byAbortToken = params.tbkToken ? await getPaymentByToken(params.tbkToken) : null;
+      const paymentId = failedPaymentId ?? byAbortToken?.id ?? null;
+
+      if (paymentId) {
         await supabase.rpc("set_payment_status", {
-          p_payment_id: failedPaymentId,
+          p_payment_id: paymentId,
           p_status: "failed",
-          p_external_ref: null,
+          p_external_ref: params.tbkToken ?? null,
         });
-        const pay = await supabase.from("payments").select("booking_id").eq("id", failedPaymentId).maybeSingle();
-        if (pay.data?.booking_id) return redirectToConfirmation(origin, pay.data.booking_id);
       }
+
+      const failedBookingId =
+        byAbortToken?.booking_id ??
+        (paymentId
+          ? (await supabase.from("payments").select("booking_id").eq("id", paymentId).maybeSingle()).data?.booking_id ?? null
+          : null);
+
+      if (failedBookingId) {
+        return redirectToConfirmation(origin, failedBookingId);
+      }
+
+      if (params.tbkToken) {
+        const knownPayment = await getPaymentByToken(params.tbkToken);
+        if (knownPayment?.booking_id) return redirectToConfirmation(origin, knownPayment.booking_id);
+      }
+
       return redirectToHelp(origin);
     }
 
@@ -130,7 +171,10 @@ export async function POST(req: Request) {
   }
 }
 
+export async function POST(req: Request) {
+  return handleTransbankReturn(req);
+}
+
 export async function GET(req: Request) {
-  const origin = getRequestOrigin(req);
-  return NextResponse.redirect(new URL("/ayuda", origin), { status: 303 });
+  return handleTransbankReturn(req);
 }

@@ -473,7 +473,7 @@ export function CheckoutClient({
                 <Label htmlFor="couponCode">Cupón de descuento (opcional)</Label>
                 <Input id="couponCode" placeholder={`Ej: ${DEMO_COUPON_CODE}`} {...form.register("couponCode")} />
                 <div className="text-xs text-muted-foreground">
-                  Demo QA: usa <strong>{DEMO_COUPON_CODE}</strong> y aplica {DEMO_COUPON_DISCOUNT_PERCENT}% de descuento.
+                  Si tienes un cupón vigente, ingrésalo aquí antes de pagar.
                 </div>
               </div>
             </div>
@@ -512,7 +512,7 @@ export function CheckoutClient({
                   </TabsList>
                   <TabsContent value="transbank_webpay">
                     <div className="text-sm text-muted-foreground">
-                      Redirección a Webpay (QA/Producción) con confirmación server-side.
+                      Redirección segura a Webpay con confirmación automática del pago en el servidor.
                     </div>
                   </TabsContent>
                   <TabsContent value="mercadopago">

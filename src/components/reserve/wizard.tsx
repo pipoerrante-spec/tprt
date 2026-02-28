@@ -22,7 +22,6 @@ import { GVRT_TERMS_SECTIONS } from "@/lib/legal/terms";
 import { isLikelyChilePlate, normalizePlate } from "@/lib/vehicle/plate";
 import {
   DEMO_COUPON_CODE,
-  DEMO_COUPON_DISCOUNT_PERCENT,
   applyDiscount,
   getCouponDiscountPercent,
   normalizeCouponCode,
@@ -836,7 +835,7 @@ export function ReserveWizard() {
                         placeholder={`Ej: ${DEMO_COUPON_CODE}`}
                       />
                       <p className="text-xs text-gray-500">
-                        Demo QA: usa <strong>{DEMO_COUPON_CODE}</strong> para aplicar {DEMO_COUPON_DISCOUNT_PERCENT}%.
+                        Si tienes un cupón vigente, ingrésalo aquí antes de confirmar el pago.
                       </p>
                     </div>
 

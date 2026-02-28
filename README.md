@@ -74,6 +74,7 @@ Notas:
 - **Webpay (Transbank)**: configura `TRANSBANK_COMMERCE_CODE`, `TRANSBANK_API_KEY`, `TRANSBANK_ENV` (`qa`/`integration`/`production`) y opcional `TRANSBANK_RETURN_SECRET`.
   - El redirect se hace vía `/pago/webpay` (POST a Webpay con `token_ws`).
   - El retorno/commit se procesa en `/api/webhooks/transbank`.
+  - La ruta soporta retorno normal y abortos por `GET` y `POST`, compatible con integración y producción.
 - **Mercado Pago**: configura `MERCADOPAGO_ACCESS_TOKEN`.
   - El checkout redirige a `init_point`.
   - La confirmación del pago se procesa por notificación en `/api/webhooks/mercadopago`.
@@ -113,6 +114,6 @@ Notas:
 
 ## Próximos pasos sugeridos
 
-- Implementar Webpay real (SDK oficial) dentro de `src/lib/payments/providers/transbank-webpay.ts`
+- Completar certificación Transbank con el comercio productivo y cargar credenciales de producción en Vercel
 - Admin UI real `/admin` + Supabase Auth + claim `app_metadata.is_admin`
 - Recordatorios (cron/queue) para email/SMS/WhatsApp
