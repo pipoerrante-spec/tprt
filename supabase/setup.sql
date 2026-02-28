@@ -65,7 +65,7 @@ create table if not exists public.availability_rules (
   weekday smallint not null check (weekday between 0 and 6),
   start_time time not null,
   end_time time not null,
-  slot_minutes integer not null check (slot_minutes in (10, 15, 20, 30, 45, 60)),
+  slot_minutes integer not null check (slot_minutes in (10, 15, 20, 30, 45, 60, 120)),
   capacity integer not null check (capacity >= 1),
   unique (commune_id, service_id, weekday, start_time, end_time)
 );
@@ -822,16 +822,16 @@ begin
     (svc_rt, c_puentealto, true)
   on conflict do nothing;
 
-  -- Weekdays: 09:00-18:00 every 30 min, capacity 2 for the core service.
+  -- Weekdays: 08:30-18:30 every 2 hours, capacity 3 for the core service.
   insert into public.availability_rules (commune_id, service_id, weekday, start_time, end_time, slot_minutes, capacity)
-  select c.id, svc_rt, d.weekday, '09:00'::time, '18:00'::time, 30, 2
+  select c.id, svc_rt, d.weekday, '08:30'::time, '18:30'::time, 120, 3
   from (values (1),(2),(3),(4),(5)) as d(weekday)
   cross join (values (c_santiago),(c_provi),(c_nunoa),(c_lascondes),(c_puentealto)) as c(id)
   on conflict do nothing;
 
-  -- Saturdays: 10:00-14:00, capacity 1.
+  -- Saturdays: 08:30-14:30 every 2 hours, capacity 3.
   insert into public.availability_rules (commune_id, service_id, weekday, start_time, end_time, slot_minutes, capacity)
-  select c.id, svc_rt, 6, '10:00'::time, '14:00'::time, 30, 1
+  select c.id, svc_rt, 6, '08:30'::time, '14:30'::time, 120, 3
   from (values (c_santiago),(c_provi),(c_nunoa),(c_lascondes),(c_puentealto)) as c(id)
   on conflict do nothing;
 

@@ -8,22 +8,13 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiJson, ApiError } from "@/lib/api";
 import { addDaysIso, getSantiagoTodayIso, isoDateToLocalNoon, toIsoDate } from "@/lib/time";
-import { Badge } from "@/components/ui/badge";
-import type { BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Check, ChevronRight, Clock, MapPin, AlertCircle, CreditCard, ShieldCheck, ScanLine } from "lucide-react";
+import { Clock, CreditCard, MapPin, ScanLine, Search, ShieldCheck } from "lucide-react";
 import { QueueModal } from "./queue-modal";
 import { UrgencyTimer } from "./urgency-timer";
 import { Label } from "@/components/ui/label";
@@ -62,6 +53,10 @@ type Slot = {
 
 type Step = "queue" | "service" | "commune" | "calendar" | "details";
 
+const INITIAL_DRIVER_CAPACITY = 3;
+const WEEKDAY_AGENDA_TIMES = ["08:30", "10:30", "12:30", "14:30", "16:30"];
+const SATURDAY_AGENDA_TIMES = ["08:30", "10:30", "12:30"];
+
 function formatClp(amount: number) {
   return new Intl.NumberFormat("es-CL", {
     style: "currency",
@@ -70,43 +65,34 @@ function formatClp(amount: number) {
   }).format(amount);
 }
 
-function demandBadge(demand: Slot["demand"]) {
-  if (demand === "high") return { label: "Alta demanda", variant: "warning" as BadgeVariant };
-  if (demand === "medium") return { label: "Demanda media", variant: "info" as BadgeVariant };
-  if (demand === "sold_out") return { label: "Agotado", variant: "danger" as BadgeVariant };
-  return { label: "Disponible", variant: "success" as BadgeVariant };
+function getAgendaTimesForDate(dateIso: string) {
+  const [y, m, d] = dateIso.split("-").map((value) => Number(value));
+  const date = new Date(Date.UTC(y ?? 0, (m ?? 1) - 1, d ?? 1, 12, 0, 0));
+  const dow = date.getUTCDay();
+  if (dow >= 1 && dow <= 5) return WEEKDAY_AGENDA_TIMES;
+  if (dow === 6) return SATURDAY_AGENDA_TIMES;
+  return [];
 }
 
 function buildDemoSlotsForDate(dateIso: string): Slot[] {
-  const [y, m, d] = dateIso.split("-").map((v) => Number(v));
-  const date = new Date(Date.UTC(y ?? 0, (m ?? 1) - 1, d ?? 1, 12, 0, 0));
-  const dow = date.getUTCDay();
-  const isWeekday = dow >= 1 && dow <= 5;
-  const isSaturday = dow === 6;
-  if (!isWeekday && !isSaturday) return [];
-
-  const startHour = 8;
-  const endHour = isSaturday ? 14 : 18;
-  const capacity = isSaturday ? 1 : 2;
-  const slots: Slot[] = [];
-  for (let hour = startHour; hour < endHour; hour += 2) {
-    const hh = String(hour).padStart(2, "0");
-    const mm = "30";
-    slots.push({
-      date: dateIso,
-      time: `${hh}:${mm}:00`,
-      capacity,
-      reserved: 0,
-      remaining: capacity,
-      demand: "low",
-      available: true,
-    });
-  }
-  return slots;
+  return getAgendaTimesForDate(dateIso).map((time) => ({
+    date: dateIso,
+    time: `${time}:00`,
+    capacity: INITIAL_DRIVER_CAPACITY,
+    reserved: 0,
+    remaining: INITIAL_DRIVER_CAPACITY,
+    demand: "low",
+    available: true,
+  }));
 }
 
 function normalizeSlotTime(time: string) {
   return time.slice(0, 5);
+}
+
+function alignSlotsToAgenda(dateIso: string, slots: Slot[]) {
+  const agendaTimes = new Set(getAgendaTimesForDate(dateIso));
+  return slots.filter((slot) => agendaTimes.has(normalizeSlotTime(slot.time)));
 }
 
 function isValidEmail(input: string) {
@@ -127,6 +113,7 @@ export function ReserveWizard() {
   const [termsChecked, setTermsChecked] = React.useState(false);
   const [pendingService, setPendingService] = React.useState<Service | null>(null);
   const [couponCode, setCouponCode] = React.useState("");
+  const [communeQuery, setCommuneQuery] = React.useState("");
 
 
 
@@ -226,13 +213,25 @@ export function ReserveWizard() {
   }, [availability.data?.slots]);
 
   const selectedDateIso = React.useMemo(() => toIsoDate(selectedDate), [selectedDate]);
-  const slotsForDay = slotsByDate.get(selectedDateIso) ?? [];
+  const slotsForDay = React.useMemo(
+    () => alignSlotsToAgenda(selectedDateIso, slotsByDate.get(selectedDateIso) ?? []),
+    [selectedDateIso, slotsByDate],
+  );
   const showClientDemoSlots = !availability.isLoading && slotsForDay.length === 0;
   const visibleSlots = React.useMemo(
     () => (showClientDemoSlots ? buildDemoSlotsForDate(selectedDateIso) : slotsForDay),
     [showClientDemoSlots, selectedDateIso, slotsForDay],
   );
-  const availableDates = React.useMemo(() => new Set([...slotsByDate.keys()]), [slotsByDate]);
+  const availableDates = React.useMemo(
+    () =>
+      new Set(
+        [...slotsByDate.entries()]
+          .filter(([date, slots]) => alignSlotsToAgenda(date, slots).length > 0)
+          .map(([date]) => date),
+      ),
+    [slotsByDate],
+  );
+  const agendaTimesForSelectedDate = React.useMemo(() => getAgendaTimesForDate(selectedDateIso), [selectedDateIso]);
   const normalizedCouponCode = React.useMemo(() => normalizeCouponCode(couponCode), [couponCode]);
   const discountPercent = React.useMemo(() => getCouponDiscountPercent(normalizedCouponCode), [normalizedCouponCode]);
   const discountPreview = React.useMemo(
@@ -291,6 +290,7 @@ export function ReserveWizard() {
   const moveToCommuneStep = React.useCallback((selectedService: Service) => {
     setService(selectedService);
     setCommune(null);
+    setCommuneQuery("");
     setSelectedSlot(null);
     setStep("commune");
   }, []);
@@ -311,6 +311,13 @@ export function ReserveWizard() {
     setTermsModalOpen(false);
     moveToCommuneStep(pendingService);
   };
+
+  const filteredCommunes = React.useMemo(() => {
+    const communeOptions = communes.data?.communes ?? [];
+    const query = communeQuery.trim().toLowerCase();
+    if (!query) return communeOptions;
+    return communeOptions.filter((item) => `${item.name} ${item.region}`.toLowerCase().includes(query));
+  }, [communes.data?.communes, communeQuery]);
 
   const readPlateFromInput = () => {
     const normalized = normalizePlate(patent);
@@ -425,50 +432,122 @@ export function ReserveWizard() {
             key="step-commune"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="max-w-md mx-auto space-y-8 py-8"
+            className="mx-auto grid max-w-4xl gap-6 py-4 lg:grid-cols-[minmax(0,1.35fr)_300px]"
           >
-            <div className="text-center space-y-2">
-              <h2 className="text-2xl font-bold">¿Dónde retiramos tu auto?</h2>
-              <p className="text-muted-foreground">Cobertura exclusiva en Santiago.</p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-base font-semibold">Selecciona tu comuna</Label>
-                <Select
-                  onValueChange={(val) => {
-                    const selected = (communes.data?.communes ?? []).find((c) => c.id === val);
-                    if (!selected) return;
-                    setCommune(selected);
-                    setStep("calendar");
-                  }}
-                >
-                  <SelectTrigger className="h-14 text-lg bg-white border-2 border-gray-200 focus:ring-0 focus:border-primary">
-                    <SelectValue placeholder="Buscar comuna..." />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
-                    {communes.isLoading ? <SelectItem value="loading" disabled>Cargando comunas...</SelectItem> : null}
-                    {!communes.isLoading && (communes.data?.communes ?? []).length === 0 ? (
-                      <SelectItem value="empty" disabled>Sin comunas disponibles</SelectItem>
-                    ) : null}
-                    {(communes.data?.communes ?? []).map((c) => (
-                      <SelectItem key={c.id} value={c.id} className="text-base py-3 cursor-pointer">
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="space-y-6">
+              <div className="text-center lg:text-left space-y-2">
+                <h2 className="text-3xl font-bold tracking-tight text-gray-900">¿Dónde retiramos tu auto?</h2>
+                <p className="text-muted-foreground">Busca tu comuna, selecciónala y continúa cuando quede correcta.</p>
               </div>
 
-              <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3 items-start">
-                <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                <p className="text-sm text-blue-800 leading-relaxed">
-                  Nuestros <span className="font-bold">Drivers certificados</span> retirarán tu vehículo en la dirección que indiques en el siguiente paso.
-                </p>
-              </div>
+              <Card className="border-gray-200 bg-white shadow-sm">
+                <CardContent className="space-y-5 p-6">
+                  <div className="space-y-2">
+                    <Label className="text-base font-semibold">Busca tu comuna</Label>
+                    <div className="relative">
+                      <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                      <Input
+                        value={communeQuery}
+                        onChange={(e) => {
+                          const nextQuery = e.target.value;
+                          setCommuneQuery(nextQuery);
+                          if (commune && commune.name.toLowerCase() !== nextQuery.trim().toLowerCase()) {
+                            setCommune(null);
+                          }
+                        }}
+                        placeholder="Escribe una comuna..."
+                        className="h-12 rounded-2xl border-gray-200 bg-gray-50 pl-11"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Ya no avanzamos automáticamente: primero eliges la comuna y luego confirmas.
+                    </p>
+                  </div>
+
+                  <div className="max-h-[320px] overflow-y-auto rounded-2xl border border-gray-200 bg-gray-50/70 p-2">
+                    {communes.isLoading ? (
+                      <div className="rounded-xl border border-dashed border-gray-200 bg-white p-4 text-sm text-gray-500">
+                        Cargando comunas disponibles...
+                      </div>
+                    ) : filteredCommunes.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-gray-200 bg-white p-4 text-sm text-gray-500">
+                        No encontramos comunas con ese criterio.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {filteredCommunes.map((item) => {
+                          const isSelected = commune?.id === item.id;
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => {
+                                setCommune(item);
+                                setCommuneQuery(item.name);
+                              }}
+                              className={`w-full rounded-2xl border px-4 py-3 text-left transition-all ${
+                                isSelected
+                                  ? "border-primary bg-primary/5 shadow-sm"
+                                  : "border-transparent bg-white hover:border-primary/30 hover:bg-primary/[0.03]"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <div>
+                                  <div className="font-semibold text-gray-900">{item.name}</div>
+                                  <div className="text-sm text-gray-500">{item.region}</div>
+                                </div>
+                                {isSelected ? (
+                                  <span className="rounded-full bg-primary px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-white">
+                                    Seleccionada
+                                  </span>
+                                ) : null}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setStep("service")}
+                      className="w-full text-gray-500 hover:text-gray-700 sm:w-auto"
+                    >
+                      Volver
+                    </Button>
+                    <Button
+                      onClick={() => commune && setStep("calendar")}
+                      disabled={!commune}
+                      className="w-full sm:flex-1"
+                    >
+                      {commune ? `Continuar con ${commune.name}` : "Selecciona una comuna para continuar"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
-            <Button variant="ghost" onClick={() => setStep("service")} className="w-full text-gray-400 hover:text-gray-600">Volver</Button>
+            <Card className="border-blue-100 bg-blue-50/80 shadow-none">
+              <CardContent className="space-y-4 p-6">
+                <div className="flex items-start gap-3">
+                  <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-blue-950">Cobertura comercial</p>
+                    <p className="text-sm leading-6 text-blue-900/80">
+                      Retiramos el vehículo en la dirección que indiques más adelante y coordinamos el traslado dentro de Santiago.
+                    </p>
+                  </div>
+                </div>
+                <div className="rounded-2xl bg-white/70 p-4 text-sm text-blue-900">
+                  <p className="font-semibold">Paso siguiente</p>
+                  <p className="mt-1 leading-6">
+                    Verás los bloques de agenda disponibles para la comuna elegida, en franjas de 2 horas desde las 08:30.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
         )}
 
@@ -479,6 +558,28 @@ export function ReserveWizard() {
             animate={{ opacity: 1 }}
             className="grid lg:grid-cols-12 gap-8"
           >
+            <div className="lg:col-span-12 rounded-3xl border border-slate-200 bg-slate-50/80 p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">{commune?.name}</p>
+                  <h2 className="text-2xl font-bold tracking-tight text-slate-900">Agenda tu retiro</h2>
+                  <p className="text-sm text-slate-600">
+                    Bloques de 2 horas desde las 08:30. Capacidad inicial planificada: {INITIAL_DRIVER_CAPACITY} choferes por bloque.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {agendaTimesForSelectedDate.map((time) => (
+                    <span
+                      key={time}
+                      className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700"
+                    >
+                      {time}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             {/* Calendar Column */}
             <div className="lg:col-span-5 space-y-4">
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
@@ -503,7 +604,7 @@ export function ReserveWizard() {
             {/* Slots Column */}
             <div className="lg:col-span-7 space-y-4">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-bold text-lg">Horarios Disponibles</h3>
+                <h3 className="font-bold text-lg">Bloques Disponibles</h3>
                 {showClientDemoSlots ? (
                   <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded-full">
                     ● Horarios demo
@@ -539,11 +640,18 @@ export function ReserveWizard() {
                                 `}
                     >
                       <span className="text-lg font-bold text-gray-800">{normalizeSlotTime(s.time)}</span>
+                      <span className="mt-1 text-[11px] font-medium text-gray-500">
+                        {s.available ? `${s.remaining} cupos disponibles` : "Sin cupos"}
+                      </span>
                       {s.demand === 'high' && <span className="text-[10px] uppercase font-bold text-orange-500 mt-1">Pocos cupos</span>}
                     </button>
                   ))
                 )}
               </div>
+
+              <Button variant="ghost" onClick={() => setStep("commune")} className="px-0 text-gray-500 hover:text-gray-700">
+                Cambiar comuna
+              </Button>
             </div>
           </motion.div>
         )}

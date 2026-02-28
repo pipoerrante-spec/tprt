@@ -1,12 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const DEFAULT_RULES = [
-  { weekday: 1, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 2 },
-  { weekday: 2, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 2 },
-  { weekday: 3, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 2 },
-  { weekday: 4, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 2 },
-  { weekday: 5, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 2 },
-  { weekday: 6, start_time: "08:30:00", end_time: "14:30:00", slot_minutes: 120, capacity: 1 },
+  { weekday: 1, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 3 },
+  { weekday: 2, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 3 },
+  { weekday: 3, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 3 },
+  { weekday: 4, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 3 },
+  { weekday: 5, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 3 },
+  { weekday: 6, start_time: "08:30:00", end_time: "14:30:00", slot_minutes: 120, capacity: 3 },
 ];
 
 export async function ensureDemoCoverageAndRules(
@@ -85,7 +85,7 @@ export function buildDemoSlots(dateFromIso: string, dateToIso: string): DemoSlot
     if (isWeekday || isSaturday) {
       const startHour = 8;
       const endHour = isSaturday ? 14 : 18;
-      const capacity = isSaturday ? 1 : 2;
+      const capacity = 3;
 
       for (let hour = startHour; hour < endHour; hour += 2) {
         const hh = String(hour).padStart(2, "0");
