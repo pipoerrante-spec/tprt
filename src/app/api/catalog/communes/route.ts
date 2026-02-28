@@ -21,11 +21,6 @@ export async function GET(req: Request) {
     p_service_id: parsed.data.serviceId,
   });
 
-  const needsFallback = Boolean(error) || !data?.length;
-  if (!needsFallback) {
-    return NextResponse.json({ communes: data }, { status: 200, headers: { "Cache-Control": "no-store" } });
-  }
-
   const fallbackCommunes = await supabase
     .from("communes")
     .select("id,name,region")
@@ -37,10 +32,20 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "catalog_unavailable" }, { status: 500 });
   }
 
-  const communeIds = (fallbackCommunes.data ?? []).map((c) => c.id);
-  if (communeIds.length > 0) {
-    await ensureDemoCoverageAndRulesForCommunes(supabase, parsed.data.serviceId, communeIds).catch(() => undefined);
+  const activeCommunes: Array<{ id: string; name: string; region: string }> = fallbackCommunes.data ?? [];
+  const activeCommuneIds = activeCommunes.map((c) => c.id);
+  const visibleCommunes: Array<{ id: string; name: string; region: string }> = data ?? [];
+  const visibleIds = new Set(visibleCommunes.map((c) => c.id));
+  const missingCommuneIds = activeCommuneIds.filter((id) => !visibleIds.has(id));
+  const needsFallback = Boolean(error) || !visibleCommunes.length;
+
+  if (!needsFallback && missingCommuneIds.length === 0) {
+    return NextResponse.json({ communes: visibleCommunes }, { status: 200, headers: { "Cache-Control": "no-store" } });
   }
 
-  return NextResponse.json({ communes: fallbackCommunes.data ?? [] }, { status: 200, headers: { "Cache-Control": "no-store" } });
+  if (activeCommuneIds.length > 0) {
+    await ensureDemoCoverageAndRulesForCommunes(supabase, parsed.data.serviceId, activeCommuneIds).catch(() => undefined);
+  }
+
+  return NextResponse.json({ communes: activeCommunes }, { status: 200, headers: { "Cache-Control": "no-store" } });
 }
