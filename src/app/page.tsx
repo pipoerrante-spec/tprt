@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { MainCarousel } from "@/components/main-carousel";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Calendar, FileText, Search, Clock, BarChart3, CheckCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { MapPin, Calendar, FileText, Search, BarChart3, CheckCircle } from "lucide-react";
 import { VehicleStatusWidget } from "@/components/vehicle/vehicle-status-widget";
 
 export default function HomePage() {
@@ -126,10 +126,10 @@ export default function HomePage() {
                 </Card>
               </Link>
 
-              <Link href="#" className="group">
-                <Card className="h-full hover:shadow-lg transition-shadow border-0 bg-white shadow-sm ring-1 ring-gray-200">
+              <div>
+                <Card className="h-full border-0 bg-white shadow-sm ring-1 ring-gray-200">
                   <CardContent className="p-6 flex flex-col items-center text-center space-y-3">
-                    <div className="h-14 w-14 bg-secondary text-white rounded-full flex items-center justify-center group-hover:scale-110 transition-transform shadow-md">
+                    <div className="h-14 w-14 bg-secondary text-white rounded-full flex items-center justify-center shadow-md">
                       <FileText className="h-7 w-7" />
                     </div>
                     <div>
@@ -138,7 +138,7 @@ export default function HomePage() {
                     </div>
                   </CardContent>
                 </Card>
-              </Link>
+              </div>
 
               <Link href="/ayuda" className="group">
                 <Card className="h-full hover:shadow-lg transition-shadow border-0 bg-white shadow-sm ring-1 ring-gray-200">
