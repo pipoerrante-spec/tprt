@@ -9,6 +9,17 @@ interface QueueModalProps {
     onComplete: () => void;
 }
 
+function randomInt(min: number, max: number) {
+    if (typeof window !== "undefined" && window.crypto?.getRandomValues) {
+        const array = new Uint32Array(1);
+        window.crypto.getRandomValues(array);
+        const range = max - min + 1;
+        return min + (array[0] % range);
+    }
+
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 export function QueueModal({ onComplete }: QueueModalProps) {
     const [progress, setProgress] = React.useState(0);
     const [position, setPosition] = React.useState(0);
@@ -18,8 +29,8 @@ export function QueueModal({ onComplete }: QueueModalProps) {
 
     React.useEffect(() => {
         // Randomize queue on mount
-        const startPos = Math.floor(Math.random() * (45 - 12 + 1) + 12);
-        const total = startPos + Math.floor(Math.random() * (150 - 50 + 1) + 50);
+        const startPos = randomInt(8, 96);
+        const total = startPos + randomInt(120, 2400);
 
         setPosition(startPos);
         setTotalInQueue(total);
@@ -37,6 +48,11 @@ export function QueueModal({ onComplete }: QueueModalProps) {
                 // Random check to see if queue moves forward
                 if (Math.random() > 0.4) {
                     const newPos = prev - 1;
+
+                    setTotalInQueue((currentTotal) => {
+                        const delta = randomInt(-12, 18);
+                        return Math.max(newPos + 8, currentTotal + delta);
+                    });
 
                     // Calculate exact progress percentage based on positions
                     // If we started at 50, and are at 40, we progressed 10 spots. 10/50 = 20%
