@@ -66,6 +66,7 @@ Notas:
 - Emails reales: set `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM` y `OPERATIONS_EMAILS` (separados por coma).
 - Recordatorio 24h: se encola como `notification_jobs` y se procesa vía `/api/cron/notifications` (proteger con `TPRT_CRON_SECRET`).
 - Planilla: `TPRT_PLANILLA_WEBHOOK_URL` permite enviar un payload para Zapier/Make/Google Sheets al confirmar pago.
+- Endpoint externo seguro: `TPRT_EXTERNAL_API_TOKEN` habilita `/api/integrations/notion` para lectura (`GET`) y recepción (`POST`) de payloads desde Notion/Make/Zapier.
 - Patente → marca/modelo/año: endpoint `/api/vehicle/lookup` (configurable con `VEHICLE_LOOKUP_PROVIDER=http|getapi_patente`).
   - Para `getapi_patente`, usa una API key real de getapi.cl (la key demo pública devuelve `403` fuera de su web).
 
@@ -111,6 +112,124 @@ Notas:
   - `POST /api/holds` crea `booking_holds` con TTL
   - `POST /api/checkout/start` convierte hold → booking (pending) y crea `payments`
   - `POST /api/webhooks/mock` marca pago y confirma booking (E2E local)
+  - `GET/POST /api/integrations/notion` expone reservas para integraciones externas y recibe payloads tipo webhook
+
+## Endpoint externo seguro
+
+Configura primero:
+
+```env
+TPRT_EXTERNAL_API_TOKEN=pon-un-token-largo-y-unico
+```
+
+Autenticación:
+
+```http
+Authorization: Bearer TU_TOKEN
+```
+
+o:
+
+```http
+x-tprt-token: TU_TOKEN
+```
+
+### Consumir reservas
+
+```bash
+curl -X GET "https://tprt.vercel.app/api/integrations/notion?status=confirmed&limit=20" \
+  -H "Authorization: Bearer TU_TOKEN"
+```
+
+Query params soportados:
+- `bookingId`
+- `status=pending_payment|confirmed|canceled`
+- `dateFrom=YYYY-MM-DD`
+- `dateTo=YYYY-MM-DD`
+- `limit=1..100`
+
+Respuesta:
+
+```json
+{
+  "items": [
+    {
+      "booking": {
+        "id": "uuid",
+        "status": "confirmed",
+        "date": "2026-03-02",
+        "time": "09:30:00",
+        "customerName": "Juan Perez",
+        "email": "juan@email.com",
+        "phone": "+56912345678",
+        "address": "Av. Ejemplo 123",
+        "notes": null,
+        "vehicle": {
+          "plate": "ABCD12",
+          "make": "Toyota",
+          "model": "Yaris",
+          "year": 2020
+        },
+        "createdAt": "2026-03-01T22:00:00.000Z"
+      },
+      "service": {
+        "id": "uuid",
+        "name": "Revisión técnica inteligente",
+        "base_price": 85000
+      },
+      "commune": {
+        "id": "uuid",
+        "name": "La Reina",
+        "region": "Región Metropolitana"
+      },
+      "payment": {
+        "id": "uuid",
+        "booking_id": "uuid",
+        "status": "paid",
+        "provider": "transbank_webpay",
+        "amount_clp": 85000,
+        "currency": "CLP",
+        "external_ref": "token",
+        "created_at": "2026-03-01T22:01:00.000Z"
+      }
+    }
+  ],
+  "count": 1
+}
+```
+
+### Enviar datos desde Notion / Make / Zapier
+
+```bash
+curl -X POST "https://tprt.vercel.app/api/integrations/notion" \
+  -H "Authorization: Bearer TU_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "page_updated",
+    "source": "notion",
+    "recordType": "lead",
+    "externalId": "lead-123",
+    "notionPageId": "abc123",
+    "bookingId": "00000000-0000-0000-0000-000000000000",
+    "payload": {
+      "name": "Juan Perez",
+      "status": "Nuevo",
+      "comment": "Llamar en la tarde"
+    }
+  }'
+```
+
+Respuesta:
+
+```json
+{
+  "ok": true,
+  "webhookId": "uuid",
+  "receivedAt": "2026-03-01T22:10:00.000Z"
+}
+```
+
+Los payloads entrantes quedan registrados en `public.webhooks_log` para luego procesarlos desde Supabase, Make, Zapier o una automatización propia.
 
 ## Próximos pasos sugeridos
 

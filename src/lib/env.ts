@@ -35,6 +35,7 @@ const envSchema = z.object({
   // Planilla (optional webhook for Zapier/Make/Sheets)
   TPRT_PLANILLA_WEBHOOK_URL: z.string().url().optional(),
   TPRT_PLANILLA_WEBHOOK_SECRET: z.string().optional(),
+  TPRT_EXTERNAL_API_TOKEN: z.string().optional(),
 
   // Vehicle lookup (optional)
   VEHICLE_LOOKUP_PROVIDER: z.enum(["none", "http", "getapi_patente"]).default("none"),
