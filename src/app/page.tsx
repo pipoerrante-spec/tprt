@@ -3,11 +3,13 @@ import { MainCarousel } from "@/components/main-carousel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Calendar, FileText, Search, BarChart3, CheckCircle } from "lucide-react";
+import { getChileMonthIndex, REVISION_CALENDAR } from "@/lib/revision-calendar";
 import { VehicleStatusWidget } from "@/components/vehicle/vehicle-status-widget";
 
 export default function HomePage() {
-  const currentMonth = new Date().toLocaleString('es-CL', { month: 'long' });
-  const currentMonthCapitalized = currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1);
+  const currentCalendarRow = REVISION_CALENDAR[getChileMonthIndex()];
+  const currentMonthLabel = currentCalendarRow.month.toUpperCase();
+  const currentAutoDigit = currentCalendarRow.auto;
 
   return (
     <main className="bg-white min-h-screen pb-20">
@@ -27,7 +29,7 @@ export default function HomePage() {
             {/* Text Month */}
             <div className="hidden sm:block text-right">
               <span className="block text-2xl font-black text-destructive uppercase tracking-tighter">
-                {currentMonthCapitalized}
+                {currentMonthLabel}
               </span>
               <span className="block text-xs text-gray-500 font-bold uppercase">DIGITO CORRESPONDIENTE</span>
             </div>
@@ -36,7 +38,7 @@ export default function HomePage() {
             <div className="h-16 w-16 bg-black rounded-md flex items-center justify-center relative overflow-hidden shadow-inner">
               {/* "Digital" font simulation with CSS */}
               <span className="text-5xl font-mono font-bold text-red-600 tracking-tighter" style={{ textShadow: "0 0 10px rgba(220, 38, 38, 0.7)" }}>
-                0
+                {currentAutoDigit}
               </span>
               {/* Scanlines overlay */}
               <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-10 pointer-events-none bg-[length:100%_4px,3px_100%]"></div>

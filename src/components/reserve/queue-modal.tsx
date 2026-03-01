@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Progress } from "@/components/ui/progress";
 
@@ -68,9 +69,17 @@ export function QueueModal({ onComplete }: QueueModalProps) {
                 animate={{ opacity: 1, scale: 1 }}
                 className="w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden"
             >
-                {/* Header Style GVRT */}
+                {/* Header with brand mark */}
                 <div className="bg-primary px-6 py-4 flex items-center justify-between">
-                    <span className="font-bold text-white tracking-widest text-lg">GVRT</span>
+                    <div className="relative h-10 w-28 overflow-visible sm:h-12 sm:w-32">
+                        <Image
+                            src="/pug.svg"
+                            alt="GVRT"
+                            fill
+                            className="origin-left object-contain object-left scale-[1.45] sm:scale-[1.6]"
+                            priority
+                        />
+                    </div>
                     <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></div>
                 </div>
 
