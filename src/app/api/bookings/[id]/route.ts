@@ -41,7 +41,9 @@ export async function GET(_: Request, ctx: { params: Promise<{ id: string }> }) 
 
   const payment = await supabase
     .from("payments")
-    .select("id,status,provider,amount_clp,currency,created_at")
+    .select(
+      "id,status,provider,amount_clp,currency,created_at,authorization_code,card_last4,response_code,payment_type_code,transbank_status,transbank_buy_order,transbank_session_id,transbank_vci,transbank_transaction_date",
+    )
     .eq("booking_id", booking.data.id)
     .order("created_at", { ascending: false })
     .limit(1)

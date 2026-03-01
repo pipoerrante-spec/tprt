@@ -29,6 +29,15 @@ type BookingResponse = {
     amount_clp: number;
     currency: string;
     created_at: string;
+    authorization_code?: string | null;
+    card_last4?: string | null;
+    response_code?: number | null;
+    payment_type_code?: string | null;
+    transbank_status?: string | null;
+    transbank_buy_order?: string | null;
+    transbank_session_id?: string | null;
+    transbank_vci?: string | null;
+    transbank_transaction_date?: string | null;
   } | null;
 };
 
@@ -97,6 +106,43 @@ export function ConfirmationClient({ bookingId }: { bookingId: string }) {
                     <div className="text-sm font-medium">{data.booking.time}</div>
                   </div>
                 </div>
+                {data.payment ? (
+                  <div className="mt-4 grid gap-3 border-t border-border/60 pt-4 sm:grid-cols-2">
+                    <div>
+                      <div className="text-xs text-muted-foreground">Monto</div>
+                      <div className="text-sm font-medium">
+                        {new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(
+                          data.payment.amount_clp,
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Fecha transacción</div>
+                      <div className="text-sm font-medium">
+                        {data.payment.transbank_transaction_date ?? data.payment.created_at}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Orden de compra</div>
+                      <div className="text-sm font-medium">{data.payment.transbank_buy_order ?? data.payment.id}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Código autorización</div>
+                      <div className="text-sm font-medium">{data.payment.authorization_code ?? "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Últimos 4 dígitos</div>
+                      <div className="text-sm font-medium">{data.payment.card_last4 ?? "—"}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Respuesta gateway</div>
+                      <div className="text-sm font-medium">
+                        {data.payment.transbank_status ?? "—"}
+                        {typeof data.payment.response_code === "number" ? ` / ${data.payment.response_code}` : ""}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               {data.payment?.status === "paid" ? (

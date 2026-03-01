@@ -14,7 +14,9 @@ export async function GET(_: Request, ctx: { params: Promise<{ id: string }> }) 
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("payments")
-    .select("id,booking_id,provider,amount_clp,currency,status,external_ref,created_at")
+    .select(
+      "id,booking_id,provider,amount_clp,currency,status,external_ref,authorization_code,card_last4,response_code,payment_type_code,transbank_status,transbank_buy_order,transbank_session_id,transbank_vci,transbank_transaction_date,created_at",
+    )
     .eq("id", parsed.data.id)
     .maybeSingle();
 

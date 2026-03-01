@@ -3,7 +3,8 @@ import { getEnv } from "@/lib/env";
 import { getRequestOrigin } from "@/lib/http";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { enqueueBookingPaidJobs, processDueNotificationJobs } from "@/lib/notifications/jobs";
-import { Environment, Options, WebpayPlus } from "transbank-sdk";
+import { WebpayPlus } from "transbank-sdk";
+import { getTransbankOptions } from "@/lib/payments/transbank-config";
 
 export const runtime = "nodejs";
 
@@ -12,6 +13,20 @@ type TransbankReturnParams = {
   tbkToken: string | null;
   tbkOrder: string | null;
   tbkSession: string | null;
+};
+
+type TransbankCommitResponse = {
+  status?: string;
+  response_code?: number;
+  buy_order?: string;
+  session_id?: string;
+  authorization_code?: string;
+  payment_type_code?: string;
+  vci?: string;
+  transaction_date?: string;
+  card_detail?: {
+    card_number?: string;
+  } | null;
 };
 
 function checkSecret(req: Request) {
@@ -31,6 +46,21 @@ function redirectToHelp(origin: string) {
 
 function isUuid(v: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+}
+
+function buildGatewayMetadata(response: TransbankCommitResponse) {
+  return {
+    authorization_code: response.authorization_code ?? null,
+    card_last4: response.card_detail?.card_number ?? null,
+    response_code: typeof response.response_code === "number" ? response.response_code : null,
+    payment_type_code: response.payment_type_code ?? null,
+    transbank_status: response.status ?? null,
+    transbank_buy_order: response.buy_order ?? null,
+    transbank_session_id: response.session_id ?? null,
+    transbank_vci: response.vci ?? null,
+    transbank_transaction_date: response.transaction_date ?? null,
+    gateway_response: response,
+  };
 }
 
 async function getPaymentByToken(token: string) {
@@ -73,7 +103,7 @@ async function readReturnParams(req: Request): Promise<TransbankReturnParams | n
 
 async function handleTransbankReturn(req: Request) {
   const env = getEnv();
-  if (!env.TRANSBANK_COMMERCE_CODE || !env.TRANSBANK_API_KEY || !env.TRANSBANK_ENV) {
+  if (!env.TRANSBANK_ENV) {
     return NextResponse.json({ error: "transbank_not_configured" }, { status: 501 });
   }
   if (!checkSecret(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -85,9 +115,7 @@ async function handleTransbankReturn(req: Request) {
   const token = params.tokenWs;
   const supabase = getSupabaseAdmin();
 
-  const envMode = env.TRANSBANK_ENV === "production" ? Environment.Production : Environment.Integration;
-  const options = new Options(env.TRANSBANK_COMMERCE_CODE, env.TRANSBANK_API_KEY, envMode);
-  const tx = new WebpayPlus.Transaction(options);
+  const tx = new WebpayPlus.Transaction(getTransbankOptions());
 
   try {
     if (!token) {
@@ -105,6 +133,19 @@ async function handleTransbankReturn(req: Request) {
           p_status: "failed",
           p_external_ref: params.tbkToken ?? null,
         });
+        await supabase
+          .from("payments")
+          .update({
+            transbank_status: "ABORTED",
+            transbank_buy_order: params.tbkOrder,
+            transbank_session_id: params.tbkSession,
+            gateway_response: {
+              TBK_TOKEN: params.tbkToken,
+              TBK_ORDEN_COMPRA: params.tbkOrder,
+              TBK_ID_SESION: params.tbkSession,
+            },
+          })
+          .eq("id", paymentId);
       }
 
       const failedBookingId =
@@ -125,9 +166,9 @@ async function handleTransbankReturn(req: Request) {
       return redirectToHelp(origin);
     }
 
-    const committed = await tx.commit(token);
-    const committedBuyOrder = String((committed as { buy_order?: string }).buy_order ?? "");
-    const committedSessionId = String((committed as { session_id?: string }).session_id ?? "");
+    const committed = (await tx.commit(token)) as TransbankCommitResponse;
+    const committedBuyOrder = String(committed.buy_order ?? "");
+    const committedSessionId = String(committed.session_id ?? "");
 
     let paymentId: string | null = null;
     let bookingId: string | null = null;
@@ -147,8 +188,8 @@ async function handleTransbankReturn(req: Request) {
       bookingId = (await supabase.from("payments").select("booking_id").eq("id", paymentId).maybeSingle()).data?.booking_id ?? null;
     }
 
-    const status = (committed as { status?: string }).status ?? null;
-    const responseCode = Number((committed as { response_code?: unknown }).response_code);
+    const status = committed.status ?? null;
+    const responseCode = Number(committed.response_code);
     const isPaid = status === "AUTHORIZED" && responseCode === 0;
     const mappedStatus = isPaid ? "paid" : "failed";
 
@@ -158,6 +199,7 @@ async function handleTransbankReturn(req: Request) {
         p_status: mappedStatus,
         p_external_ref: token,
       });
+      await supabase.from("payments").update(buildGatewayMetadata(committed)).eq("id", paymentId);
       if (mappedStatus === "paid" && bookingId) {
         await enqueueBookingPaidJobs(bookingId).catch(() => null);
         await processDueNotificationJobs({ limit: 10 }).catch(() => null);

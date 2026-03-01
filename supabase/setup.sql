@@ -126,6 +126,16 @@ create table if not exists public.payments (
   currency text not null default 'CLP',
   status public.payment_status not null default 'pending',
   external_ref text,
+  authorization_code text,
+  card_last4 text,
+  response_code integer,
+  payment_type_code text,
+  transbank_status text,
+  transbank_buy_order text,
+  transbank_session_id text,
+  transbank_vci text,
+  transbank_transaction_date timestamptz,
+  gateway_response jsonb,
   created_at timestamptz not null default public.tprt_now(),
   user_id uuid references auth.users(id)
 );
