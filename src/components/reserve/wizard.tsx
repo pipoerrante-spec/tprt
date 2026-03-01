@@ -858,10 +858,10 @@ export function ReserveWizard() {
                     </Button>
                   </CardContent>
                   <div className="px-6 pb-6 pt-2 text-center">
-                    <p className="text-xs text-gray-400 mb-2">Pago 100% Seguro vía</p>
+                    <p className="text-xs text-gray-400 mb-2">Pago seguro con Webpay</p>
                     <div className="flex justify-center items-center gap-2 opacity-50 grayscale hover:grayscale-0 transition-all">
                       <CreditCard className="h-6 w-6" />
-                      <span className="font-bold italic">WebPay / Getnet</span>
+                      <span className="font-semibold tracking-tight">Webpay</span>
                     </div>
                   </div>
                 </Card>

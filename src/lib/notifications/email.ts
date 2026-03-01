@@ -12,14 +12,28 @@ function formatClp(amount: number) {
   }).format(amount);
 }
 
-type SendEmailInput = { to: string | string[]; subject: string; html: string };
+type SendEmailInput = {
+  to: string | string[];
+  cc?: string | string[];
+  subject: string;
+  html: string;
+};
 
-async function sendEmail({ to, subject, html }: SendEmailInput) {
+function normalizeRecipients(value?: string | string[] | null) {
+  return (Array.isArray(value) ? value : value ? [value] : [])
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+async function sendEmail({ to, cc, subject, html }: SendEmailInput) {
   const env = getEnv();
+  const toRecipients = normalizeRecipients(to);
+  const ccRecipients = normalizeRecipients(cc);
 
   if (env.EMAIL_PROVIDER === "console") {
     console.log("[TPRT][email][console]", {
-      to,
+      to: toRecipients,
+      cc: ccRecipients,
       subject,
       htmlPreview: html.replace(/\\s+/g, " ").slice(0, 240) + "…",
     });
@@ -38,7 +52,8 @@ async function sendEmail({ to, subject, html }: SendEmailInput) {
       },
       body: JSON.stringify({
         from: env.EMAIL_FROM,
-        to: Array.isArray(to) ? to : [to],
+        to: toRecipients,
+        ...(ccRecipients.length > 0 ? { cc: ccRecipients } : null),
         subject,
         html,
         ...(env.TPRT_SUPPORT_EMAIL ? { reply_to: env.TPRT_SUPPORT_EMAIL } : null),
@@ -130,7 +145,7 @@ export async function sendBookingConfirmationEmail(bookingId: string) {
     </div>
   `;
 
-  await sendEmail({ to: booking.data.email, subject, html });
+  await sendEmail({ to: booking.data.email, cc: "contacto@gvrt.cl", subject, html });
 }
 
 export async function sendOperationsNewServiceEmail(bookingId: string) {

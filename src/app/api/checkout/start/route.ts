@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getEnv } from "@/lib/env";
 import { getRequestOrigin } from "@/lib/http";
 import { getRequestIp, rateLimit } from "@/lib/rate-limit";
+import { enqueueBookingPaidJobs, processDueNotificationJobs } from "@/lib/notifications/jobs";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getPaymentsProvider } from "@/lib/payments/provider";
 import {
@@ -380,6 +381,35 @@ export async function POST(req: Request) {
   }
 
   const paymentId = payment.data as unknown as string;
+
+  if (env.TRANSBANK_ENV === "qa" && providerId === "transbank_webpay") {
+    const finalizePayment = await supabase.rpc("set_payment_status", {
+      p_payment_id: paymentId,
+      p_status: "paid",
+      p_external_ref: `qa:${paymentId}`,
+    });
+    if (finalizePayment.error) {
+      return NextResponse.json({ error: "payment_commit_failed" }, { status: 500 });
+    }
+
+    await enqueueBookingPaidJobs(bookingId);
+    await processDueNotificationJobs({ limit: 10 });
+
+    return NextResponse.json(
+      {
+        bookingId,
+        paymentId,
+        provider: providerId,
+        redirectUrl: `/confirmacion/${encodeURIComponent(bookingId)}`,
+        amountClp,
+        baseAmountClp,
+        discountAmountClp,
+        discountPercent,
+        couponCode,
+      },
+      { status: 200, headers: { "Cache-Control": "no-store" } },
+    );
+  }
 
   let session;
   try {

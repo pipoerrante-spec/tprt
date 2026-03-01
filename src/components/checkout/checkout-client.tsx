@@ -17,7 +17,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Clock, CreditCard, Shield } from "lucide-react";
 import { normalizePlate } from "@/lib/vehicle/plate";
@@ -53,7 +52,7 @@ const formSchema = z.object({
   notes: z.string().trim().max(500).optional(),
   couponCode: z.string().trim().max(32).optional(),
   consentPrivacy: z.boolean().refine((v) => v === true, "Debes aceptar la política de privacidad"),
-  provider: z.enum(["transbank_webpay", "mercadopago"]),
+  provider: z.literal("transbank_webpay"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -122,7 +121,6 @@ export function CheckoutClient({
       "address",
       "notes",
       "couponCode",
-      "provider",
     ];
     for (const field of fields) {
       const current = form.getValues(field);
@@ -169,7 +167,6 @@ export function CheckoutClient({
           address: values.address ?? "",
           notes: values.notes ?? "",
           couponCode: values.couponCode ?? "",
-          provider: values.provider ?? "transbank_webpay",
         }),
       );
     });
@@ -177,7 +174,6 @@ export function CheckoutClient({
   }, [form]);
 
   const consentPrivacy = useWatch({ control: form.control, name: "consentPrivacy" });
-  const provider = useWatch({ control: form.control, name: "provider" });
   const vehiclePlate = useWatch({ control: form.control, name: "vehiclePlate" });
   const couponCode = useWatch({ control: form.control, name: "couponCode" });
   const lastLookupPlateRef = React.useRef<string>("");
@@ -265,12 +261,12 @@ export function CheckoutClient({
           address: values.address,
           notes: values.notes || null,
           couponCode: values.couponCode || null,
-          provider: values.provider,
+          provider: "transbank_webpay",
         }),
       });
     },
     onSuccess: (data) => {
-      toast.success("Redirigiendo a pago…");
+      toast.success(data.redirectUrl.startsWith("/confirmacion/") ? "Reserva confirmada." : "Redirigiendo a Webpay…");
       window.location.href = data.redirectUrl;
     },
     onError: (e) => {
@@ -499,28 +495,18 @@ export function CheckoutClient({
             <Card className="bg-background/30">
               <CardHeader>
                 <CardTitle className="text-base">Método de pago</CardTitle>
-                <CardDescription>Selecciona Webpay o Mercado Pago.</CardDescription>
+                <CardDescription>Pago seguro con Webpay.</CardDescription>
               </CardHeader>
               <CardContent>
-                <Tabs
-                  value={provider}
-                  onValueChange={(v) => form.setValue("provider", v as FormValues["provider"])}
-                >
-                  <TabsList>
-                    <TabsTrigger value="transbank_webpay">Webpay</TabsTrigger>
-                    <TabsTrigger value="mercadopago">Mercado Pago</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="transbank_webpay">
+                <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-background/40 p-4">
+                  <CreditCard className="size-5 text-primary" />
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium">Webpay</div>
                     <div className="text-sm text-muted-foreground">
-                      Redirección segura a Webpay con confirmación automática del pago en el servidor.
+                      Redirección segura con confirmación automática del pago en el servidor.
                     </div>
-                  </TabsContent>
-                  <TabsContent value="mercadopago">
-                    <div className="text-sm text-muted-foreground">
-                      Checkout redirect a Mercado Pago con notificación server-side para confirmar el pago.
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -545,7 +531,7 @@ export function CheckoutClient({
                   startCheckout.isPending || !holdRow || holdRow.status === "expired" || holdRow.status === "canceled"
                 }
               >
-                {startCheckout.isPending ? "Iniciando pago…" : "Pagar"}
+                {startCheckout.isPending ? "Iniciando pago…" : "Pagar con Webpay"}
               </Button>
             </div>
           </form>

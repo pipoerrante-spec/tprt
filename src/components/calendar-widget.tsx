@@ -1,24 +1,10 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-const calendarData = [
-    { month: "Enero", digits: ["9"] },
-    { month: "Febrero", digits: ["0"] },
-    { month: "Marzo", digits: [] }, // Usually blank or specific
-    { month: "Abril", digits: ["1"] },
-    { month: "Mayo", digits: ["2"] },
-    { month: "Junio", digits: ["3"] },
-    { month: "Julio", digits: ["4"] },
-    { month: "Agosto", digits: ["5"] },
-    { month: "Septiembre", digits: ["6"] },
-    { month: "Octubre", digits: ["7"] },
-    { month: "Noviembre", digits: ["8"] },
-    { month: "Diciembre", digits: [] },
-];
+import { getChileMonthIndex, REVISION_CALENDAR } from "@/lib/revision-calendar";
 
 export function CalendarWidget() {
-    const currentMonthIndex = new Date().getMonth();
+    const currentMonthIndex = getChileMonthIndex();
 
     return (
         <Card className="border-t-4 border-t-primary shadow-sm">
@@ -29,8 +15,9 @@ export function CalendarWidget() {
             </CardHeader>
             <CardContent className="p-0">
                 <div className="grid grid-cols-3 text-sm">
-                    {calendarData.map((item, index) => {
+                    {REVISION_CALENDAR.map((item, index) => {
                         const isCurrent = index === currentMonthIndex;
+                        const hasDigit = item.auto !== "-";
                         return (
                             <div
                                 key={item.month}
@@ -43,14 +30,12 @@ export function CalendarWidget() {
                                     {item.month.slice(0, 3)}
                                 </span>
                                 <div className="mt-1 flex gap-1">
-                                    {item.digits.length > 0 ? (
-                                        item.digits.map(d => (
-                                            <span key={d} className="flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-white font-bold text-xs">
-                                                {d}
-                                            </span>
-                                        ))
+                                    {hasDigit ? (
+                                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-white font-bold text-xs">
+                                            {item.auto}
+                                        </span>
                                     ) : (
-                                        <span className="text-gray-300 text-xs">-</span>
+                                        <span className="text-base font-semibold text-gray-300">-</span>
                                     )}
                                 </div>
                             </div>

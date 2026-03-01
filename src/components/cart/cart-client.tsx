@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { apiJson } from "@/lib/api";
 import { useCountdown } from "@/hooks/use-countdown";
+import { applyDiscount, getCouponDiscountPercent, normalizeCouponCode } from "@/lib/pricing";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -94,6 +95,9 @@ export function CartClient({ holdId, couponCode }: { holdId: string | null; coup
   const service = services.data?.services?.find((s) => s.id === holdRow?.service_id) ?? null;
   const commune = communes.data?.communes?.find((c) => c.id === holdRow?.commune_id) ?? null;
   const holdBlocked = holdRow?.status === "expired" || holdRow?.status === "canceled";
+  const normalizedCouponCode = normalizeCouponCode(couponCode);
+  const discountPercent = getCouponDiscountPercent(normalizedCouponCode);
+  const discountedAmounts = service ? applyDiscount(service.base_price, discountPercent) : null;
   const checkoutHref = couponCode
     ? `/checkout?holdId=${encodeURIComponent(effectiveHoldId ?? "")}&coupon=${encodeURIComponent(couponCode)}`
     : `/checkout?holdId=${encodeURIComponent(effectiveHoldId ?? "")}`;
@@ -170,11 +174,27 @@ export function CartClient({ holdId, couponCode }: { holdId: string | null; coup
                 <div className="text-xs text-muted-foreground">Hora</div>
                 <div className="text-sm font-medium">{holdRow.time}</div>
               </div>
-              {service ? (
-                <div className="sm:col-span-2">
-                  <div className="text-xs text-muted-foreground">Total</div>
-                  <div className="text-lg font-semibold tracking-tight">{formatClp(service.base_price)}</div>
-                </div>
+              {service && discountedAmounts ? (
+                <>
+                  <div className="sm:col-span-2 flex items-center justify-between text-sm">
+                    <div className="text-xs text-muted-foreground">Subtotal</div>
+                    <div className="font-medium">{formatClp(service.base_price)}</div>
+                  </div>
+                  <div className="sm:col-span-2 flex items-center justify-between text-sm">
+                    <div className="text-xs text-muted-foreground">Descuento</div>
+                    <div className={discountPercent > 0 ? "font-medium text-emerald-600" : "font-medium"}>
+                      {discountPercent > 0
+                        ? `- ${formatClp(discountedAmounts.discountAmountClp)}`
+                        : formatClp(0)}
+                    </div>
+                  </div>
+                  <div className="sm:col-span-2 flex items-center justify-between pt-1">
+                    <div className="text-xs text-muted-foreground">Total</div>
+                    <div className="text-lg font-semibold tracking-tight">
+                      {formatClp(discountedAmounts.finalAmountClp)}
+                    </div>
+                  </div>
+                </>
               ) : null}
             </div>
           )}
