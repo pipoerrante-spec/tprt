@@ -14,12 +14,12 @@ export function SiteNav() {
       <div className="bg-white border-b border-gray-200">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/" className="flex items-center gap-3">
-            <div className="relative h-16 w-40 overflow-hidden sm:h-20 sm:w-48">
+            <div className="relative h-16 w-44 overflow-visible sm:h-20 sm:w-52">
               <Image
                 src="/pug.svg"
                 alt="GVRT"
                 fill
-                className="object-contain object-left scale-[1.9] sm:scale-[2.05]"
+                className="origin-left object-contain object-left scale-[1.55] sm:scale-[1.75]"
                 priority
               />
             </div>

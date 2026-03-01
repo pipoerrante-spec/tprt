@@ -8,12 +8,12 @@ export function SiteFooter() {
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-sm">
           <div className="space-y-3">
-            <div className="relative h-16 w-40 overflow-hidden sm:h-20 sm:w-48">
+            <div className="relative h-16 w-44 overflow-visible sm:h-20 sm:w-52">
               <Image
                 src="/pug.svg"
                 alt="GVRT"
                 fill
-                className="object-contain object-left scale-[1.9] sm:scale-[2.05]"
+                className="origin-left object-contain object-left scale-[1.55] sm:scale-[1.75]"
               />
             </div>
             <ul className="space-y-2 text-gray-600">
