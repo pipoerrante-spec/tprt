@@ -19,8 +19,14 @@ type Slot = {
   available: boolean;
 };
 
+const FIXED_AGENDA_TIMES = new Set(["07:30", "09:30", "11:30", "13:30", "15:30"]);
+
 function formatSlotTime(time: string) {
   return time.slice(0, 5);
+}
+
+function normalizeSlotsToAgenda(slots: Slot[]) {
+  return slots.filter((slot) => FIXED_AGENDA_TIMES.has(formatSlotTime(slot.time)));
 }
 
 export function BookingAvailabilityCalendar() {
@@ -33,7 +39,13 @@ export function BookingAvailabilityCalendar() {
     queryFn: () => apiJson<{ services: Service[] }>("/api/catalog/services"),
   });
 
-  const service = services.data?.services?.[0] ?? null;
+  const service = React.useMemo(
+    () =>
+      services.data?.services?.find((item) => item.name === "Revisión técnica inteligente") ??
+      services.data?.services?.[0] ??
+      null,
+    [services.data?.services],
+  );
 
   const communes = useQuery({
     enabled: !!service,
@@ -59,23 +71,28 @@ export function BookingAvailabilityCalendar() {
     refetchOnWindowFocus: false,
   });
 
+  const normalizedSlots = React.useMemo(
+    () => normalizeSlotsToAgenda(availability.data?.slots ?? []),
+    [availability.data?.slots],
+  );
+
   const selectedDateIso = React.useMemo(() => toIsoDate(selectedDate), [selectedDate]);
   const availableDates = React.useMemo(
     () =>
       new Set(
-        (availability.data?.slots ?? [])
+        normalizedSlots
           .filter((slot) => slot.available && slot.remaining > 0)
           .map((slot) => slot.date),
       ),
-    [availability.data?.slots],
+    [normalizedSlots],
   );
 
   const slotsForDay = React.useMemo(
     () =>
-      (availability.data?.slots ?? [])
+      normalizedSlots
         .filter((slot) => slot.date === selectedDateIso && slot.available && slot.remaining > 0)
         .sort((a, b) => a.time.localeCompare(b.time)),
-    [availability.data?.slots, selectedDateIso],
+    [normalizedSlots, selectedDateIso],
   );
 
   const nextAvailableDate = React.useMemo(() => {
@@ -96,9 +113,6 @@ export function BookingAvailabilityCalendar() {
           Cupos limitados
         </div>
         <CardTitle className="text-lg text-primary">Próximas fechas disponibles</CardTitle>
-        <p className="text-sm text-gray-600">
-          Mostramos disponibilidad real para {commune?.name ?? "la comuna seleccionada"} con bloques desde las 07:30.
-        </p>
       </CardHeader>
       <CardContent className="space-y-5">
         {services.isLoading || communes.isLoading || availability.isLoading ? (
@@ -144,9 +158,7 @@ export function BookingAvailabilityCalendar() {
                     </div>
                   ))
                 ) : (
-                  <div className="text-sm text-gray-500">
-                    Selecciona una fecha habilitada para ver los horarios disponibles.
-                  </div>
+                  <div className="text-sm text-gray-500">Sin horarios disponibles.</div>
                 )}
               </div>
             </div>

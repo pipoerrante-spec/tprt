@@ -78,7 +78,9 @@ export default function HomePage() {
               <div className="relative z-10 text-white space-y-2">
                 <h3 className="text-2xl font-bold">¿Sin tiempo?</h3>
                 <p className="text-blue-100 text-sm max-w-[250px]">Nosotros lo hacemos por ti. Retiro y entrega a domicilio.</p>
-                <Button size="sm" variant="secondary" className="mt-2 font-bold hover:bg-white hover:text-primary">VER SERVICIO</Button>
+                <Button asChild size="sm" variant="secondary" className="mt-2 font-bold hover:bg-white hover:text-primary">
+                  <Link href="/reservar">VER SERVICIO</Link>
+                </Button>
               </div>
             </div>
 
