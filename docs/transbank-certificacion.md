@@ -39,9 +39,12 @@
 
 - `TPRT_PAYMENTS_PROVIDER_ACTIVE=transbank_webpay`
 - `TRANSBANK_ENV=integration`
-- `TRANSBANK_COMMERCE_CODE=<codigo_integracion>`
-- `TRANSBANK_API_KEY=<api_key_secret_integracion>`
 - `TRANSBANK_RETURN_SECRET=<secreto_interno_opcional>`
+
+Nota:
+
+- En este proyecto, cuando `TRANSBANK_ENV` no es `production`, el código usa automáticamente las credenciales oficiales de integración expuestas por `transbank-sdk`.
+- Eso permite dejar `preview` y `development` en integración sin reutilizar credenciales productivas.
 
 ### Producción
 
@@ -109,6 +112,13 @@ Desde `/confirmacion/[id]` se muestra al usuario:
 - Orden de compra.
 - Código de autorización.
 - Últimos 4 dígitos.
+
+## Evidencia técnica ya verificada en este repo
+
+- `production` del proyecto `tprt` quedó desplegado en `tprt.vercel.app`.
+- `preview` quedó operando con `TRANSBANK_ENV=integration`.
+- Se probó creación de sesión Webpay en preview y respondió con `redirectUrl` hacia `https://webpay3gint.transbank.cl/webpayserver/initTransaction`.
+- Se puede exportar el histórico Transbank con `node scripts/transbank-validation-report.mjs`.
 
 ## Generar evidencia desde base
 
