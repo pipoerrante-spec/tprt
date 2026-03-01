@@ -777,11 +777,6 @@ grant execute on function public.set_payment_status(uuid, public.payment_status,
 do $$
 declare
   svc_rt uuid;
-  c_santiago uuid;
-  c_provi uuid;
-  c_nunoa uuid;
-  c_lascondes uuid;
-  c_puentealto uuid;
 begin
   insert into public.services (name, description, base_price, duration_minutes, active)
   values
@@ -804,35 +799,58 @@ begin
     ('Providencia', 'Región Metropolitana', true),
     ('Ñuñoa', 'Región Metropolitana', true),
     ('Las Condes', 'Región Metropolitana', true),
-    ('Puente Alto', 'Región Metropolitana', true)
+    ('Puente Alto', 'Región Metropolitana', true),
+    ('San Miguel', 'Región Metropolitana', true),
+    ('Huechuraba', 'Región Metropolitana', true),
+    ('Colina', 'Región Metropolitana', true)
   on conflict do nothing;
 
-  select id into c_santiago from public.communes where name = 'Santiago' limit 1;
-  select id into c_provi from public.communes where name = 'Providencia' limit 1;
-  select id into c_nunoa from public.communes where name = 'Ñuñoa' limit 1;
-  select id into c_lascondes from public.communes where name = 'Las Condes' limit 1;
-  select id into c_puentealto from public.communes where name = 'Puente Alto' limit 1;
-
   insert into public.service_coverage (service_id, commune_id, active)
-  values
-    (svc_rt, c_santiago, true),
-    (svc_rt, c_provi, true),
-    (svc_rt, c_nunoa, true),
-    (svc_rt, c_lascondes, true),
-    (svc_rt, c_puentealto, true)
+  select svc_rt, c.id, true
+  from public.communes c
+  where c.name in (
+    'Santiago',
+    'Providencia',
+    'Ñuñoa',
+    'Las Condes',
+    'Puente Alto',
+    'San Miguel',
+    'Huechuraba',
+    'Colina'
+  )
   on conflict do nothing;
 
   -- Monday to Saturday: 07:30-17:30 every 2 hours, capacity 3 for the core service.
   insert into public.availability_rules (commune_id, service_id, weekday, start_time, end_time, slot_minutes, capacity)
   select c.id, svc_rt, d.weekday, '07:30'::time, '17:30'::time, 120, 3
   from (values (1),(2),(3),(4),(5)) as d(weekday)
-  cross join (values (c_santiago),(c_provi),(c_nunoa),(c_lascondes),(c_puentealto)) as c(id)
+  cross join public.communes c
+  where c.name in (
+    'Santiago',
+    'Providencia',
+    'Ñuñoa',
+    'Las Condes',
+    'Puente Alto',
+    'San Miguel',
+    'Huechuraba',
+    'Colina'
+  )
   on conflict do nothing;
 
   -- Saturdays follow the same March schedule.
   insert into public.availability_rules (commune_id, service_id, weekday, start_time, end_time, slot_minutes, capacity)
   select c.id, svc_rt, 6, '07:30'::time, '17:30'::time, 120, 3
-  from (values (c_santiago),(c_provi),(c_nunoa),(c_lascondes),(c_puentealto)) as c(id)
+  from public.communes c
+  where c.name in (
+    'Santiago',
+    'Providencia',
+    'Ñuñoa',
+    'Las Condes',
+    'Puente Alto',
+    'San Miguel',
+    'Huechuraba',
+    'Colina'
+  )
   on conflict do nothing;
 
 end $$;
