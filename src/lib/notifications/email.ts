@@ -25,10 +25,6 @@ function normalizeRecipients(value?: string | string[] | null) {
     .filter(Boolean);
 }
 
-function isResendQaSandbox(env: ReturnType<typeof getEnv>) {
-  return env.TRANSBANK_ENV === "qa" && (env.EMAIL_FROM || "").includes("onboarding@resend.dev");
-}
-
 async function sendEmail({ to, cc, subject, html }: SendEmailInput) {
   const env = getEnv();
   const toRecipients = normalizeRecipients(to);
@@ -149,18 +145,16 @@ export async function sendBookingConfirmationEmail(bookingId: string) {
     </div>
   `;
 
-  const confirmationCc = isResendQaSandbox(env) ? undefined : "contacto@gvrt.cl";
-  await sendEmail({ to: booking.data.email, cc: confirmationCc, subject, html });
+  await sendEmail({ to: booking.data.email, cc: "contacto@gvrt.cl", subject, html });
 }
 
 export async function sendOperationsNewServiceEmail(bookingId: string) {
   const env = getEnv();
-  const qaSandbox = isResendQaSandbox(env);
   const opsList = [
-    ...(qaSandbox ? ["pipoerrante@gmail.com"] : (env.OPERATIONS_EMAILS || "").split(",")),
-    ...(qaSandbox ? [] : env.TPRT_SUPPORT_EMAIL ? [env.TPRT_SUPPORT_EMAIL] : []),
-    ...(qaSandbox ? [] : (env.ADMIN_EMAILS || "").split(",")),
-    ...(qaSandbox ? [] : ["contacto@gvrt.cl"]),
+    ...(env.OPERATIONS_EMAILS || "").split(","),
+    ...(env.TPRT_SUPPORT_EMAIL ? [env.TPRT_SUPPORT_EMAIL] : []),
+    ...(env.ADMIN_EMAILS || "").split(","),
+    "contacto@gvrt.cl",
   ]
     .map((s) => s.trim())
     .filter(Boolean);
