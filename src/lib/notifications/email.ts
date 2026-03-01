@@ -20,9 +20,16 @@ type SendEmailInput = {
 };
 
 function normalizeRecipients(value?: string | string[] | null) {
+  const seen = new Set<string>();
   return (Array.isArray(value) ? value : value ? [value] : [])
     .map((entry) => entry.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter((entry) => {
+      const key = entry.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 }
 
 async function sendEmail({ to, cc, subject, html }: SendEmailInput) {
