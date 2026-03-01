@@ -21,7 +21,12 @@ export default function CalendarioPage() {
 
                         <Card className="bg-blue-50 border-blue-100">
                             <CardContent className="p-4 text-sm leading-6 text-blue-900">
-                                <strong>Nota:</strong> Conducir con la revisión técnica vencida en Chile es una infracción grave que conlleva una multa de 1 a 1,5 UTM (aprox. $69.611 a $104.417 a febrero de 2026). Además de la multa económica, Carabineros puede retirar el vehículo de circulación y enviarlo a corrales, y la falta impide renovar el permiso de circulación. Considerando la grúa $52.444 aprox, corrales, trámites notariales, un descuido puede costar $200.000 además del estrés, quedas sin vehículo y corres riesgos de daños por grúa.
+                                <p>
+                                    <strong>Nota:</strong> Si su revisión técnica está vencida, puede realizar el trámite en cualquier momento, pero se expone a multas de tránsito si circula con el documento vencido.
+                                </p>
+                                <p className="mt-3">
+                                    Conducir con la revisión técnica vencida en Chile es una infracción grave que conlleva una multa de 1 a 1,5 UTM (aprox. $69.611 a $104.417 a febrero de 2026). Además de la multa económica, Carabineros puede retirar el vehículo de circulación y enviarlo a corrales, y la falta impide renovar el permiso de circulación. Considerando la grúa $52.444 aprox, corrales, trámites notariales, un descuido puede costar $200.000 además del estrés, quedas sin vehículo y corres riesgos de daños por grúa.
+                                </p>
                             </CardContent>
                         </Card>
                     </div>
