@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { Clock, CreditCard, Shield } from "lucide-react";
+import { CheckCircle2, CreditCard, Shield } from "lucide-react";
 import { normalizePlate } from "@/lib/vehicle/plate";
 import { DEMO_COUPON_CODE, DEMO_COUPON_DISCOUNT_PERCENT, applyDiscount, normalizeCouponCode } from "@/lib/pricing";
 
@@ -321,15 +321,15 @@ export function CheckoutClient({
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="info">
           <CreditCard className="size-3.5" />
-          Checkout
+          Paso final
         </Badge>
         <Badge>
-          <Clock className="size-3.5" />
-          Hold: {holdRow?.status ?? "…"}
+          <CheckCircle2 className="size-3.5" />
+          Cupo reservado
         </Badge>
         <Badge variant="success">
           <Shield className="size-3.5" />
-          Server-side
+          Pago seguro
         </Badge>
       </div>
 

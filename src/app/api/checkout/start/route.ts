@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getEnv } from "@/lib/env";
 import { getRequestOrigin } from "@/lib/http";
+import { sendBookingConfirmationEmail, sendOperationsNewServiceEmail } from "@/lib/notifications/email";
 import { getRequestIp, rateLimit } from "@/lib/rate-limit";
 import { enqueueBookingPaidJobs, processDueNotificationJobs } from "@/lib/notifications/jobs";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -392,8 +393,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "payment_commit_failed" }, { status: 500 });
     }
 
-    await enqueueBookingPaidJobs(bookingId);
-    await processDueNotificationJobs({ limit: 10 });
+    try {
+      await enqueueBookingPaidJobs(bookingId);
+      await processDueNotificationJobs({ limit: 10 });
+    } catch (error) {
+      console.error("[checkout.start][qa_notifications_failed]", error);
+      await Promise.allSettled([
+        sendBookingConfirmationEmail(bookingId),
+        sendOperationsNewServiceEmail(bookingId),
+      ]);
+    }
 
     return NextResponse.json(
       {
