@@ -49,13 +49,13 @@ export default function HelpPage() {
             <AccordionItem value="item-1">
               <AccordionTrigger>¿Qué documentos debo presentar?</AccordionTrigger>
               <AccordionContent>
-                Debe presentar el Certificado de Revisión Técnica anterior, Certificado de Emisiones Contaminantes y su Permiso de Circulación o Padrón.
+                Debo presentar: Certificado de Revisión Técnica anterior - Certificado de Emisiones Contaminantes - Permiso de Circulación - Padrón - SOAP.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-2">
               <AccordionTrigger>¿Qué pasa si mi revisión está vencida?</AccordionTrigger>
               <AccordionContent>
-                Puede realizar la revisión normalmente, sin embargo, se expone a multas por circular con la documentación vencida.
+                Puede realizar la revisión, pero se expone claramente a multas y al envío del vehículo a corrales por circular con la documentación vencida.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-3">
