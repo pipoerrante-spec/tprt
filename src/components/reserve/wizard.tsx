@@ -21,7 +21,6 @@ import { Label } from "@/components/ui/label";
 import { GVRT_TERMS_SECTIONS } from "@/lib/legal/terms";
 import { isLikelyChilePlate, normalizePlate } from "@/lib/vehicle/plate";
 import {
-  DEMO_COUPON_CODE,
   applyDiscount,
   getCouponDiscountPercent,
   normalizeCouponCode,
@@ -828,16 +827,13 @@ export function ReserveWizard() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="demo-coupon">Código de descuento (opcional)</Label>
+                      <Label htmlFor="coupon-code">¿Tienes un cupón de descuento? Ingrésalo acá.</Label>
                       <Input
-                        id="demo-coupon"
+                        id="coupon-code"
                         value={couponCode}
                         onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                        placeholder={`Ej: ${DEMO_COUPON_CODE}`}
+                        placeholder="Cupón de descuento"
                       />
-                      <p className="text-xs text-gray-500">
-                        Si tienes un cupón vigente, ingrésalo aquí antes de confirmar el pago.
-                      </p>
                     </div>
 
                     <div className="flex justify-between items-center text-sm text-gray-600">

@@ -1,6 +1,6 @@
 export const QA_SERVICE_PRICE_CLP = 85_000;
-export const DEMO_COUPON_CODE = "DEMO2026";
-export const DEMO_COUPON_DISCOUNT_PERCENT = 99;
+export const ACTIVE_COUPON_CODE = "DEMO2026";
+export const ACTIVE_COUPON_DISCOUNT_PERCENT = 99;
 
 export function normalizeCouponCode(raw?: string | null) {
   const value = (raw ?? "").trim().toUpperCase();
@@ -8,7 +8,7 @@ export function normalizeCouponCode(raw?: string | null) {
 }
 
 export function getCouponDiscountPercent(couponCode?: string | null) {
-  return couponCode === DEMO_COUPON_CODE ? DEMO_COUPON_DISCOUNT_PERCENT : 0;
+  return couponCode === ACTIVE_COUPON_CODE ? ACTIVE_COUPON_DISCOUNT_PERCENT : 0;
 }
 
 export function applyDiscount(baseAmountClp: number, discountPercent: number) {

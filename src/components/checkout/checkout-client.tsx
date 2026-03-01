@@ -20,7 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, CreditCard, Shield } from "lucide-react";
 import { normalizePlate } from "@/lib/vehicle/plate";
-import { DEMO_COUPON_CODE, DEMO_COUPON_DISCOUNT_PERCENT, applyDiscount, normalizeCouponCode } from "@/lib/pricing";
+import { applyDiscount, getCouponDiscountPercent, normalizeCouponCode } from "@/lib/pricing";
 
 type HoldPublic = {
   id: string;
@@ -290,7 +290,7 @@ export function CheckoutClient({
   const onSubmit = form.handleSubmit((values) => startCheckout.mutate(values));
   const baseAmountClp = service?.base_price ?? 85_000;
   const normalizedCouponCode = normalizeCouponCode(couponCode);
-  const previewDiscountPercent = normalizedCouponCode === DEMO_COUPON_CODE ? DEMO_COUPON_DISCOUNT_PERCENT : 0;
+  const previewDiscountPercent = getCouponDiscountPercent(normalizedCouponCode);
   const previewAmounts = applyDiscount(baseAmountClp, previewDiscountPercent);
 
   React.useEffect(() => {
@@ -466,11 +466,8 @@ export function CheckoutClient({
                 <Textarea id="notes" placeholder="Indicaciones, referencia, horario preferido…" {...form.register("notes")} />
               </div>
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="couponCode">Cupón de descuento (opcional)</Label>
-                <Input id="couponCode" placeholder={`Ej: ${DEMO_COUPON_CODE}`} {...form.register("couponCode")} />
-                <div className="text-xs text-muted-foreground">
-                  Si tienes un cupón vigente, ingrésalo aquí antes de pagar.
-                </div>
+                <Label htmlFor="couponCode">¿Tienes un cupón de descuento? Ingrésalo acá.</Label>
+                <Input id="couponCode" placeholder="Cupón de descuento" {...form.register("couponCode")} />
               </div>
             </div>
 
