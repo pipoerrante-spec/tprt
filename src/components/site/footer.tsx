@@ -8,7 +8,14 @@ export function SiteFooter() {
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-sm">
           <div className="space-y-3">
-            <Image src="/pug.svg" alt="GVRT" width={180} height={56} className="h-14 w-auto" />
+            <div className="relative h-16 w-40 overflow-hidden sm:h-20 sm:w-48">
+              <Image
+                src="/pug.svg"
+                alt="GVRT"
+                fill
+                className="object-contain object-left scale-[1.9] sm:scale-[2.05]"
+              />
+            </div>
             <ul className="space-y-2 text-gray-600">
               <li>Gestión integral de revisión técnica vehicular.</li>
               <li>Retiro, traslado y entrega en domicilio.</li>
