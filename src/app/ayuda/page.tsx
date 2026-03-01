@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Phone, Mail, Clock } from "lucide-react";
+import { Mail, Clock } from "lucide-react";
 
 export default function HelpPage() {
   return (
@@ -16,18 +16,7 @@ export default function HelpPage() {
         </div>
 
         {/* Contact Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="text-center hover:shadow-md transition-shadow">
-            <CardHeader>
-              <Phone className="w-8 h-8 mx-auto text-destructive mb-2" />
-              <CardTitle className="text-lg">Atención Telefónica</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-2">Lunes a Viernes<br />9:00 - 18:00 hrs</p>
-              <p className="font-bold text-primary">+56 2 2345 6789</p>
-            </CardContent>
-          </Card>
-
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <Card className="text-center hover:shadow-md transition-shadow">
             <CardHeader>
               <Mail className="w-8 h-8 mx-auto text-primary mb-2" />
