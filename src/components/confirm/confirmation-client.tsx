@@ -9,49 +9,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle2, Clock, XCircle } from "lucide-react";
+import type { BookingConfirmationResponse } from "@/lib/bookings/get-booking-confirmation";
 
-type BookingResponse = {
-  booking: {
-    id: string;
-    status: "pending_payment" | "confirmed" | "canceled" | "completed";
-    date: string;
-    time: string;
-    customerName: string;
-    emailMasked: string;
-    service: { id: string; name: string } | null;
-    commune: { id: string; name: string; region: string } | null;
-    createdAt: string;
-  };
-  payment: {
-    id: string;
-    status: "pending" | "paid" | "failed" | "refunded";
-    provider: string;
-    amount_clp: number;
-    currency: string;
-    created_at: string;
-    authorization_code?: string | null;
-    card_last4?: string | null;
-    response_code?: number | null;
-    payment_type_code?: string | null;
-    transbank_status?: string | null;
-    transbank_buy_order?: string | null;
-    transbank_session_id?: string | null;
-    transbank_vci?: string | null;
-    transbank_transaction_date?: string | null;
-  } | null;
-};
-
-function statusBadge(status: BookingResponse["booking"]["status"], pay?: BookingResponse["payment"] | null) {
+function statusBadge(status: BookingConfirmationResponse["booking"]["status"], pay?: BookingConfirmationResponse["payment"] | null) {
   if (pay?.status === "paid" && status === "confirmed") return { variant: "success" as BadgeVariant, label: "Confirmada" };
   if (pay?.status === "failed" || status === "canceled") return { variant: "danger" as BadgeVariant, label: "No pagada" };
   if (status === "pending_payment") return { variant: "warning" as BadgeVariant, label: "Pendiente de pago" };
   return { variant: "default" as BadgeVariant, label: status };
 }
 
-export function ConfirmationClient({ bookingId }: { bookingId: string }) {
+export function ConfirmationClient({ bookingId, initialData }: { bookingId: string; initialData?: BookingConfirmationResponse | null }) {
   const booking = useQuery({
     queryKey: ["booking", bookingId],
-    queryFn: () => apiJson<BookingResponse>(`/api/bookings/${encodeURIComponent(bookingId)}`),
+    queryFn: () => apiJson<BookingConfirmationResponse>(`/api/bookings/${encodeURIComponent(bookingId)}`),
+    initialData: initialData ?? undefined,
     refetchInterval: 2_500,
   });
 
