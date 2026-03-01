@@ -560,7 +560,7 @@ export function ReserveWizard() {
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">{commune?.name}</p>
                   <h2 className="text-2xl font-bold tracking-tight text-slate-900">Agenda tu retiro</h2>
                   <p className="text-sm text-slate-600">
-                    Bloques de 2 horas desde las 07:30. Capacidad inicial planificada: {INITIAL_DRIVER_CAPACITY} choferes por bloque.
+                    Bloques de 2 horas desde las 07:30.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -613,7 +613,7 @@ export function ReserveWizard() {
               </div>
 
               <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-semibold text-orange-900">
-                Pocos cupos. Cada horario tiene {INITIAL_DRIVER_CAPACITY} cupos y abajo puedes ver cuántos quedan disponibles.
+                Pocos cupos disponibles
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
