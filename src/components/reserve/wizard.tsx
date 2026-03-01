@@ -416,7 +416,7 @@ export function ReserveWizard() {
                   <p className="text-sm text-gray-500 mb-4">{s.description}</p>
                   <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
                     <span className="text-2xl font-black text-primary">{formatClp(s.base_price)}</span>
-                    <Button size="sm" className="rounded-full">Seleccionar</Button>
+                    <Button size="sm" className="rounded-full bg-destructive hover:bg-destructive/90">Seleccionar</Button>
                   </div>
                 </div>
               ))

@@ -17,20 +17,20 @@ export function MainCarousel() {
                 <div className="relative flex-[0_0_100%] h-full min-w-0">
                     <div
                         className="absolute inset-0 bg-cover bg-center opacity-80"
-                        style={{ backgroundImage: "url('/images/carousel-lights.png')" }}
+                        style={{ backgroundImage: "url('/pug.png')" }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent md:bg-gradient-to-r md:from-black/90 md:via-black/60 md:to-transparent flex items-center">
                         <div className="mx-auto max-w-7xl px-6 w-full">
                             <div className="max-w-2xl text-left space-y-6 animate-in fade-in slide-in-from-bottom duration-700">
                                 <h2 className="text-5xl md:text-6xl font-bold text-white drop-shadow-md leading-tight">
-                                    No pierdas tu mañana <br /><span className="text-blue-400">en la fila</span>
+                                    No pierdas tu mañana <br /><span className="text-green-400">en la fila</span>
                                 </h2>
                                 <p className="text-xl text-gray-200 drop-shadow-sm max-w-lg">
-                                    Nuestro servicio incluye <strong>retiro, trámite y devolución</strong>. Recupera tu tiempo mientras nosotros nos encargamos de todo.
+                                    Empresa registrada, conductores verificados, fotos reales del proceso y <strong>+ de 4000 servicios realizados</strong>.
                                 </p>
                             </div>
                             <div className="mt-8 flex justify-center">
-                                <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-white border-0 font-bold text-xl h-14 px-10 shadow-lg shadow-blue-900/20 rounded-full transition-transform hover:scale-105">
+                                <Button asChild size="lg" className="bg-destructive hover:bg-destructive/90 text-white border-0 font-bold text-xl h-14 px-10 shadow-lg shadow-red-900/20 rounded-full transition-transform hover:scale-105">
                                     <Link href="/reservar">Reservar ahora</Link>
                                 </Button>
                             </div>
@@ -56,7 +56,7 @@ export function MainCarousel() {
                                     Revisión Técnica <br /><span className="text-green-400">a Domicilio</span>
                                 </h2>
                                 <p className="text-lg text-gray-200 drop-shadow-sm">
-                                    Cobertura en todo Santiago. Choferes certificados y seguro incluido por 3.000 UF. 100% Seguro y Transparente.
+                                    Nuestro servicio incluye retiro a domicilio, gestión completa, devolución segura y seguimiento real en cada etapa del proceso.
                                 </p>
                             </div>
                             <div className="mt-6 flex justify-center">

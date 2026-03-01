@@ -8,15 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Building2, Clock3, MapPin, Search } from "lucide-react";
 
 const plantas = [
+    { id: 6, nombre: "UVT La Reina", direccion: "Alcalde Fernando Castillo Velasco 8602", comuna: "La Reina", estado: "Abierto" },
+    { id: 7, nombre: "Dekra La Reina", direccion: "Aguas Claras 1700", comuna: "La Reina", estado: "Concurrido" },
     { id: 1, nombre: "San Dámaso - La Florida", direccion: "Av. La Florida 11550", comuna: "La Florida", estado: "Abierto" },
+    { id: 9, nombre: "Dekra Independencia", direccion: "Av. Independencia 5595", comuna: "Independencia", estado: "Abierto" },
+    { id: 8, nombre: "UVT La Florida", direccion: "Av. Vicuña Mackenna 10395", comuna: "La Florida", estado: "Abierto" },
     { id: 2, nombre: "Tüv Rheinland - Huechuraba", direccion: "Santa Marta 750", comuna: "Huechuraba", estado: "Abierto" },
     { id: 3, nombre: "SGS - Quilicura", direccion: "Presidente Eduardo Frei Montalva 9800", comuna: "Quilicura", estado: "Concurrido" },
     { id: 4, nombre: "Applus - Peñalolén", direccion: "Av. Quilín 5550", comuna: "Peñalolén", estado: "Abierto" },
     { id: 5, nombre: "Inspectorate - Maipú", direccion: "Camino a Melipilla 15200", comuna: "Maipú", estado: "Cerrado" },
-    { id: 6, nombre: "UVT La Reina", direccion: "Alcalde Fernando Castillo Velasco 8602", comuna: "La Reina", estado: "Abierto" },
-    { id: 7, nombre: "Dekra La Reina", direccion: "Aguas Claras 1700", comuna: "La Reina", estado: "Concurrido" },
-    { id: 8, nombre: "UVT La Florida", direccion: "Av. Vicuña Mackenna 10395", comuna: "La Florida", estado: "Abierto" },
-    { id: 9, nombre: "Dekra Independencia", direccion: "Av. Independencia 5595", comuna: "Independencia", estado: "Abierto" },
 ];
 
 export default function PlantasPage() {
