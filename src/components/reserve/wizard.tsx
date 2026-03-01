@@ -53,8 +53,7 @@ type Slot = {
 type Step = "queue" | "service" | "commune" | "calendar" | "details";
 
 const INITIAL_DRIVER_CAPACITY = 3;
-const WEEKDAY_AGENDA_TIMES = ["08:30", "10:30", "12:30", "14:30", "16:30"];
-const SATURDAY_AGENDA_TIMES = ["08:30", "10:30", "12:30"];
+const MARCH_AGENDA_TIMES = ["07:30", "09:30", "11:30", "13:30", "15:30"];
 
 function formatClp(amount: number) {
   return new Intl.NumberFormat("es-CL", {
@@ -68,8 +67,7 @@ function getAgendaTimesForDate(dateIso: string) {
   const [y, m, d] = dateIso.split("-").map((value) => Number(value));
   const date = new Date(Date.UTC(y ?? 0, (m ?? 1) - 1, d ?? 1, 12, 0, 0));
   const dow = date.getUTCDay();
-  if (dow >= 1 && dow <= 5) return WEEKDAY_AGENDA_TIMES;
-  if (dow === 6) return SATURDAY_AGENDA_TIMES;
+  if (dow >= 1 && dow <= 6) return MARCH_AGENDA_TIMES;
   return [];
 }
 
@@ -542,7 +540,7 @@ export function ReserveWizard() {
                 <div className="rounded-2xl bg-white/70 p-4 text-sm text-blue-900">
                   <p className="font-semibold">Paso siguiente</p>
                   <p className="mt-1 leading-6">
-                    Verás los bloques de agenda disponibles para la comuna elegida, en franjas de 2 horas desde las 08:30.
+                    Verás los bloques de agenda disponibles para la comuna elegida, en franjas de 2 horas desde las 07:30.
                   </p>
                 </div>
               </CardContent>
@@ -563,7 +561,7 @@ export function ReserveWizard() {
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">{commune?.name}</p>
                   <h2 className="text-2xl font-bold tracking-tight text-slate-900">Agenda tu retiro</h2>
                   <p className="text-sm text-slate-600">
-                    Bloques de 2 horas desde las 08:30. Capacidad inicial planificada: {INITIAL_DRIVER_CAPACITY} choferes por bloque.
+                    Bloques de 2 horas desde las 07:30. Capacidad inicial planificada: {INITIAL_DRIVER_CAPACITY} choferes por bloque.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -615,6 +613,10 @@ export function ReserveWizard() {
                 )}
               </div>
 
+              <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-semibold text-orange-900">
+                Pocos cupos. Cada horario tiene {INITIAL_DRIVER_CAPACITY} cupos y abajo puedes ver cuántos quedan disponibles.
+              </div>
+
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {availability.isLoading ? (
                   <div className="col-span-full rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
@@ -642,7 +644,6 @@ export function ReserveWizard() {
                       <span className="mt-1 text-[11px] font-medium text-gray-500">
                         {s.available ? `${s.remaining} cupos disponibles` : "Sin cupos"}
                       </span>
-                      {s.demand === 'high' && <span className="text-[10px] uppercase font-bold text-orange-500 mt-1">Pocos cupos</span>}
                     </button>
                   ))
                 )}

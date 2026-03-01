@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
 
@@ -7,7 +8,7 @@ export function SiteFooter() {
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-sm">
           <div className="space-y-3">
-            <h3 className="font-bold text-primary">GVRT Revisión Técnica</h3>
+            <Image src="/pug.svg" alt="GVRT" width={180} height={56} className="h-14 w-auto" />
             <ul className="space-y-2 text-gray-600">
               <li>Gestión integral de revisión técnica vehicular.</li>
               <li>Retiro, traslado y entrega en domicilio.</li>

@@ -31,7 +31,7 @@ export function MainCarousel() {
                             </div>
                             <div className="mt-8 flex justify-center">
                                 <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-white border-0 font-bold text-xl h-14 px-10 shadow-lg shadow-blue-900/20 rounded-full transition-transform hover:scale-105">
-                                    <Link href="/reservar">RESERVAR AHORA</Link>
+                                    <Link href="/reservar">Reservar ahora</Link>
                                 </Button>
                             </div>
                         </div>
@@ -61,7 +61,7 @@ export function MainCarousel() {
                             </div>
                             <div className="mt-6 flex justify-center">
                                 <Button asChild size="lg" className="bg-destructive hover:bg-destructive/90 text-white border-0 font-bold text-lg h-12 px-8">
-                                    <Link href="/reservar">RESERVAR AHORA</Link>
+                                    <Link href="/reservar">Reservar ahora</Link>
                                 </Button>
                             </div>
                         </div>

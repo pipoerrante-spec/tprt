@@ -822,16 +822,16 @@ begin
     (svc_rt, c_puentealto, true)
   on conflict do nothing;
 
-  -- Weekdays: 08:30-18:30 every 2 hours, capacity 3 for the core service.
+  -- Monday to Saturday: 07:30-17:30 every 2 hours, capacity 3 for the core service.
   insert into public.availability_rules (commune_id, service_id, weekday, start_time, end_time, slot_minutes, capacity)
-  select c.id, svc_rt, d.weekday, '08:30'::time, '18:30'::time, 120, 3
+  select c.id, svc_rt, d.weekday, '07:30'::time, '17:30'::time, 120, 3
   from (values (1),(2),(3),(4),(5)) as d(weekday)
   cross join (values (c_santiago),(c_provi),(c_nunoa),(c_lascondes),(c_puentealto)) as c(id)
   on conflict do nothing;
 
-  -- Saturdays: 08:30-14:30 every 2 hours, capacity 3.
+  -- Saturdays follow the same March schedule.
   insert into public.availability_rules (commune_id, service_id, weekday, start_time, end_time, slot_minutes, capacity)
-  select c.id, svc_rt, 6, '08:30'::time, '14:30'::time, 120, 3
+  select c.id, svc_rt, 6, '07:30'::time, '17:30'::time, 120, 3
   from (values (c_santiago),(c_provi),(c_nunoa),(c_lascondes),(c_puentealto)) as c(id)
   on conflict do nothing;
 

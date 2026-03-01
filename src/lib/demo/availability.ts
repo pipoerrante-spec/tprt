@@ -1,13 +1,16 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const DEFAULT_RULES = [
-  { weekday: 1, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 3 },
-  { weekday: 2, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 3 },
-  { weekday: 3, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 3 },
-  { weekday: 4, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 3 },
-  { weekday: 5, start_time: "08:30:00", end_time: "18:30:00", slot_minutes: 120, capacity: 3 },
-  { weekday: 6, start_time: "08:30:00", end_time: "14:30:00", slot_minutes: 120, capacity: 3 },
+  { weekday: 1, start_time: "07:30:00", end_time: "17:30:00", slot_minutes: 120, capacity: 3 },
+  { weekday: 2, start_time: "07:30:00", end_time: "17:30:00", slot_minutes: 120, capacity: 3 },
+  { weekday: 3, start_time: "07:30:00", end_time: "17:30:00", slot_minutes: 120, capacity: 3 },
+  { weekday: 4, start_time: "07:30:00", end_time: "17:30:00", slot_minutes: 120, capacity: 3 },
+  { weekday: 5, start_time: "07:30:00", end_time: "17:30:00", slot_minutes: 120, capacity: 3 },
+  { weekday: 6, start_time: "07:30:00", end_time: "17:30:00", slot_minutes: 120, capacity: 3 },
 ];
+
+const DEMO_SLOT_TIMES = ["07:30:00", "09:30:00", "11:30:00", "13:30:00", "15:30:00"];
+const DEFAULT_SLOT_CAPACITY = 3;
 
 export async function ensureDemoCoverageAndRules(
   supabase: SupabaseClient,
@@ -83,19 +86,13 @@ export function buildDemoSlots(dateFromIso: string, dateToIso: string): DemoSlot
     const isSaturday = dow === 6;
 
     if (isWeekday || isSaturday) {
-      const startHour = 8;
-      const endHour = isSaturday ? 14 : 18;
-      const capacity = 3;
-
-      for (let hour = startHour; hour < endHour; hour += 2) {
-        const hh = String(hour).padStart(2, "0");
-        const mm = "30";
+      for (const time of DEMO_SLOT_TIMES) {
         slots.push({
           date: isoDate,
-          time: `${hh}:${mm}:00`,
-          capacity,
+          time,
+          capacity: DEFAULT_SLOT_CAPACITY,
           reserved: 0,
-          remaining: capacity,
+          remaining: DEFAULT_SLOT_CAPACITY,
           demand: "low",
           available: true,
         });
