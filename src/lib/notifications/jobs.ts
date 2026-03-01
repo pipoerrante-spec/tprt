@@ -48,6 +48,19 @@ export async function enqueueBookingPaidJobs(bookingId: string) {
   if (upsert.error) throw new Error("notification_jobs_upsert_failed");
 }
 
+export async function enqueueImmediateBookingEmailJobs(bookingId: string) {
+  const supabase = getSupabaseAdmin();
+  const nowIso = new Date().toISOString();
+
+  const rows: Array<{ booking_id: string; kind: string; channel: string; send_at: string }> = [
+    { booking_id: bookingId, kind: "customer_confirmation_email", channel: "email", send_at: nowIso },
+    { booking_id: bookingId, kind: "ops_new_service_email", channel: "email", send_at: nowIso },
+  ];
+
+  const upsert = await supabase.from("notification_jobs").upsert(rows, { onConflict: "booking_id,kind" });
+  if (upsert.error) throw new Error("notification_jobs_upsert_failed");
+}
+
 async function runJob(job: NotificationJobRow) {
   const env = getEnv();
 
