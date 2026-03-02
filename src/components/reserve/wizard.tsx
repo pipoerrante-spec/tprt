@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { getAgendaTimesForDate, isWithinTemporarySingleOperatorWindow, TEMP_SINGLE_OPERATOR_CAPACITY } from "@/lib/availability-window";
 import { apiJson, ApiError } from "@/lib/api";
 import { addDaysIso, getSantiagoTodayIso, isoDateToLocalNoon, toIsoDate } from "@/lib/time";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,13 @@ import { UrgencyTimer } from "./urgency-timer";
 import { Label } from "@/components/ui/label";
 import { GVRT_TERMS_SECTIONS } from "@/lib/legal/terms";
 import { isLikelyChilePlate, normalizePlate } from "@/lib/vehicle/plate";
-import { SITE_PRODUCT_PRICE_CLP } from "@/lib/pricing";
+import {
+  SITE_PRODUCT_PRICE_CLP,
+  applyDiscount,
+  getCouponDiscountPercent,
+  hasActiveCouponConfigured,
+  normalizeCouponCode,
+} from "@/lib/pricing";
 
 const CHECKOUT_PREFILL_KEY = "gvrt_checkout_prefill_v1";
 const HOLD_STORAGE_KEY = "gvrt_hold_id_v1";
@@ -48,7 +55,6 @@ type Slot = {
 type Step = "queue" | "service" | "commune" | "calendar" | "details";
 
 const INITIAL_DRIVER_CAPACITY = 3;
-const MARCH_AGENDA_TIMES = ["07:30", "09:30", "11:30", "13:30", "15:30"];
 
 function formatClp(amount: number) {
   return new Intl.NumberFormat("es-CL", {
@@ -58,21 +64,14 @@ function formatClp(amount: number) {
   }).format(amount);
 }
 
-function getAgendaTimesForDate(dateIso: string) {
-  const [y, m, d] = dateIso.split("-").map((value) => Number(value));
-  const date = new Date(Date.UTC(y ?? 0, (m ?? 1) - 1, d ?? 1, 12, 0, 0));
-  const dow = date.getUTCDay();
-  if (dow >= 1 && dow <= 6) return MARCH_AGENDA_TIMES;
-  return [];
-}
-
 function buildDemoSlotsForDate(dateIso: string): Slot[] {
+  const capacity = isWithinTemporarySingleOperatorWindow(dateIso) ? TEMP_SINGLE_OPERATOR_CAPACITY : INITIAL_DRIVER_CAPACITY;
   return getAgendaTimesForDate(dateIso).map((time) => ({
     date: dateIso,
     time: `${time}:00`,
-    capacity: INITIAL_DRIVER_CAPACITY,
+    capacity,
     reserved: 0,
-    remaining: INITIAL_DRIVER_CAPACITY,
+    remaining: capacity,
     demand: "low",
     available: true,
   }));
@@ -83,8 +82,8 @@ function normalizeSlotTime(time: string) {
 }
 
 function alignSlotsToAgenda(dateIso: string, slots: Slot[]) {
-  const agendaTimes = new Set(getAgendaTimesForDate(dateIso));
-  return slots.filter((slot) => agendaTimes.has(normalizeSlotTime(slot.time)));
+  const agendaTimes = getAgendaTimesForDate(dateIso);
+  return slots.filter((slot) => agendaTimes.some((time) => time === normalizeSlotTime(slot.time)));
 }
 
 function isValidEmail(input: string) {
@@ -104,6 +103,7 @@ export function ReserveWizard() {
   const [termsModalOpen, setTermsModalOpen] = React.useState(false);
   const [termsChecked, setTermsChecked] = React.useState(false);
   const [pendingService, setPendingService] = React.useState<Service | null>(null);
+  const [couponCode, setCouponCode] = React.useState("");
   const [communeQuery, setCommuneQuery] = React.useState("");
 
 
@@ -155,6 +155,7 @@ export function ReserveWizard() {
         body: JSON.stringify({ serviceId: service!.id, communeId: commune!.id, ...input }),
       }),
     onSuccess: (data) => {
+      const normalizedCoupon = normalizeCouponCode(couponCode);
       const normalizedPatent = normalizePlate(patent);
       if (typeof window !== "undefined") {
         window.localStorage.setItem(
@@ -169,6 +170,7 @@ export function ReserveWizard() {
             vehicleYear: vehicleYear.trim(),
             address: address.trim(),
             notes: notes.trim(),
+            couponCode: normalizedCoupon ?? "",
             provider: "transbank_webpay",
           }),
         );
@@ -176,6 +178,7 @@ export function ReserveWizard() {
       }
       const nextUrl = new URL("/carrito", window.location.origin);
       nextUrl.searchParams.set("holdId", data.holdId);
+      if (normalizedCoupon) nextUrl.searchParams.set("coupon", normalizedCoupon);
       router.push(nextUrl.pathname + "?" + nextUrl.searchParams.toString());
     },
     onError: (e) => {
@@ -220,6 +223,16 @@ export function ReserveWizard() {
     [slotsByDate],
   );
   const agendaTimesForSelectedDate = React.useMemo(() => getAgendaTimesForDate(selectedDateIso), [selectedDateIso]);
+  const couponEnabled = hasActiveCouponConfigured();
+  const normalizedCouponCode = React.useMemo(() => normalizeCouponCode(couponCode), [couponCode]);
+  const discountPercent = React.useMemo(
+    () => (couponEnabled ? getCouponDiscountPercent(normalizedCouponCode) : 0),
+    [couponEnabled, normalizedCouponCode],
+  );
+  const discountPreview = React.useMemo(
+    () => applyDiscount(service?.base_price ?? SITE_PRODUCT_PRICE_CLP, discountPercent),
+    [service?.base_price, discountPercent],
+  );
   const displayAmountClp = service?.base_price ?? SITE_PRODUCT_PRICE_CLP;
   const plateTypographyClass =
     patent.length >= 8
@@ -547,7 +560,7 @@ export function ReserveWizard() {
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">{commune?.name}</p>
                   <h2 className="text-2xl font-bold tracking-tight text-slate-900">Agenda tu retiro</h2>
                   <p className="text-sm text-slate-600">
-                    Bloques de 2 horas desde las 07:30.
+                    Bloques de 2 horas {isWithinTemporarySingleOperatorWindow(selectedDateIso) ? "hasta las 13:30." : "desde las 07:30."}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -813,9 +826,29 @@ export function ReserveWizard() {
                       <span className="font-semibold">{formatClp(displayAmountClp)}</span>
                     </div>
 
+                    {couponEnabled ? (
+                      <div className="space-y-2">
+                        <Label htmlFor="coupon-code">¿Tienes un cupón de descuento? Ingrésalo acá.</Label>
+                        <Input
+                          id="coupon-code"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                          placeholder="Cupón de descuento"
+                        />
+                      </div>
+                    ) : null}
+
+                    {couponEnabled ? (
+                      <div className="flex justify-between items-center text-sm text-gray-600">
+                        <span>Descuento</span>
+                        <span>{discountPercent > 0 ? `- ${formatClp(discountPreview.discountAmountClp)}` : formatClp(0)}</span>
+                      </div>
+                    ) : null}
                     <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
                       <span className="font-bold text-lg">Total</span>
-                      <span className="font-black text-2xl text-primary">{formatClp(displayAmountClp)}</span>
+                      <span className="font-black text-2xl text-primary">
+                        {formatClp(couponEnabled ? discountPreview.finalAmountClp : displayAmountClp)}
+                      </span>
                     </div>
 
                     <Button

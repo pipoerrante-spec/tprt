@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getAgendaTimesForDate, isWithinTemporarySingleOperatorWindow, TEMP_SINGLE_OPERATOR_CAPACITY } from "@/lib/availability-window";
 
 const DEFAULT_RULES = [
   { weekday: 1, start_time: "07:30:00", end_time: "17:30:00", slot_minutes: 120, capacity: 3 },
@@ -9,7 +10,6 @@ const DEFAULT_RULES = [
   { weekday: 6, start_time: "07:30:00", end_time: "17:30:00", slot_minutes: 120, capacity: 3 },
 ];
 
-const DEMO_SLOT_TIMES = ["07:30:00", "09:30:00", "11:30:00", "13:30:00", "15:30:00"];
 const DEFAULT_SLOT_CAPACITY = 3;
 
 export async function ensureDemoCoverageAndRules(
@@ -86,13 +86,16 @@ export function buildDemoSlots(dateFromIso: string, dateToIso: string): DemoSlot
     const isSaturday = dow === 6;
 
     if (isWeekday || isSaturday) {
-      for (const time of DEMO_SLOT_TIMES) {
+      const slotCapacity = isWithinTemporarySingleOperatorWindow(isoDate)
+        ? TEMP_SINGLE_OPERATOR_CAPACITY
+        : DEFAULT_SLOT_CAPACITY;
+      for (const time of getAgendaTimesForDate(isoDate).map((item) => `${item}:00`)) {
         slots.push({
           date: isoDate,
           time,
-          capacity: DEFAULT_SLOT_CAPACITY,
+          capacity: slotCapacity,
           reserved: 0,
-          remaining: DEFAULT_SLOT_CAPACITY,
+          remaining: slotCapacity,
           demand: "low",
           available: true,
         });

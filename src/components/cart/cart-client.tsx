@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { apiJson } from "@/lib/api";
 import { useCountdown } from "@/hooks/use-countdown";
+import { applyDiscount, getCouponDiscountPercent, hasActiveCouponConfigured, normalizeCouponCode } from "@/lib/pricing";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,7 +39,7 @@ function formatClp(amount: number) {
   }).format(amount);
 }
 
-export function CartClient({ holdId }: { holdId: string | null }) {
+export function CartClient({ holdId, couponCode }: { holdId: string | null; couponCode: string | null }) {
   const router = useRouter();
   const [effectiveHoldId, setEffectiveHoldId] = React.useState<string | null>(holdId);
 
@@ -58,8 +59,9 @@ export function CartClient({ holdId }: { holdId: string | null }) {
     if (holdId || !effectiveHoldId) return;
     const url = new URL(window.location.href);
     url.searchParams.set("holdId", effectiveHoldId);
+    if (couponCode) url.searchParams.set("coupon", couponCode);
     router.replace(url.pathname + "?" + url.searchParams.toString());
-  }, [effectiveHoldId, holdId, router]);
+  }, [couponCode, effectiveHoldId, holdId, router]);
 
   const hold = useQuery({
     enabled: !!effectiveHoldId,
@@ -93,7 +95,14 @@ export function CartClient({ holdId }: { holdId: string | null }) {
   const service = services.data?.services?.find((s) => s.id === holdRow?.service_id) ?? null;
   const commune = communes.data?.communes?.find((c) => c.id === holdRow?.commune_id) ?? null;
   const holdBlocked = holdRow?.status === "expired" || holdRow?.status === "canceled";
-  const checkoutHref = `/checkout?holdId=${encodeURIComponent(effectiveHoldId ?? "")}`;
+  const couponEnabled = hasActiveCouponConfigured();
+  const normalizedCouponCode = normalizeCouponCode(couponCode);
+  const discountPercent = couponEnabled ? getCouponDiscountPercent(normalizedCouponCode) : 0;
+  const discountedAmounts = service ? applyDiscount(service.base_price, discountPercent) : null;
+  const checkoutHref =
+    couponEnabled && normalizedCouponCode
+      ? `/checkout?holdId=${encodeURIComponent(effectiveHoldId ?? "")}&coupon=${encodeURIComponent(normalizedCouponCode)}`
+      : `/checkout?holdId=${encodeURIComponent(effectiveHoldId ?? "")}`;
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -167,11 +176,25 @@ export function CartClient({ holdId }: { holdId: string | null }) {
                 <div className="text-xs text-muted-foreground">Hora</div>
                 <div className="text-sm font-medium">{holdRow.time}</div>
               </div>
-              {service ? (
+              {service && discountedAmounts ? (
                 <>
                   <div className="sm:col-span-2 flex items-center justify-between text-sm">
+                    <div className="text-xs text-muted-foreground">Subtotal</div>
+                    <div className="font-medium">{formatClp(service.base_price)}</div>
+                  </div>
+                  {couponEnabled ? (
+                    <div className="sm:col-span-2 flex items-center justify-between text-sm">
+                      <div className="text-xs text-muted-foreground">Descuento</div>
+                      <div className={discountPercent > 0 ? "font-medium text-emerald-600" : "font-medium"}>
+                        {discountPercent > 0
+                          ? `- ${formatClp(discountedAmounts.discountAmountClp)}`
+                          : formatClp(0)}
+                      </div>
+                    </div>
+                  ) : null}
+                  <div className="sm:col-span-2 flex items-center justify-between text-sm">
                     <div className="text-xs text-muted-foreground">Total</div>
-                    <div className="font-semibold">{formatClp(service.base_price)}</div>
+                    <div className="font-semibold">{formatClp(discountedAmounts.finalAmountClp)}</div>
                   </div>
                 </>
               ) : null}

@@ -57,7 +57,7 @@ Nota:
 Nota:
 
 - En este proyecto, `TRANSBANK_COMMERCE_CODE` corresponde al `Tbk-Api-Key-Id` que entrega Transbank para Webpay Plus.
-- El sitio deja publicado un producto de prueba visible por `CLP 50` para ejecutar la compra real final solicitada por Transbank.
+- El sitio quedó nuevamente con precio comercial `CLP 85.000`.
 
 ## Casos que deben ejecutarse y guardar
 

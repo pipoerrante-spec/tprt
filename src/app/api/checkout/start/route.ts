@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { isAllowedAgendaTime, isWithinTemporarySingleOperatorWindow, TEMP_SINGLE_OPERATOR_CAPACITY } from "@/lib/availability-window";
 import { trackBookingPhase } from "@/lib/bookings/phases";
 import { getEnv } from "@/lib/env";
 import { getRequestOrigin } from "@/lib/http";
@@ -199,6 +200,46 @@ async function createBookingFromHoldQaFallback(
   return { bookingId: created.data.id as string, error: null as null };
 }
 
+async function countTemporaryWindowReservations(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  input: {
+    serviceId: string;
+    communeId: string;
+    date: string;
+    time: string;
+    excludeHoldId?: string;
+    excludeBookingId?: string;
+  },
+) {
+  const [bookings, holds] = await Promise.all([
+    supabase
+      .from("bookings")
+      .select("id", { count: "exact", head: true })
+      .eq("service_id", input.serviceId)
+      .eq("commune_id", input.communeId)
+      .eq("date", input.date)
+      .eq("time", input.time)
+      .in("status", ["pending_payment", "confirmed"])
+      .neq("id", input.excludeBookingId ?? "00000000-0000-0000-0000-000000000000"),
+    supabase
+      .from("booking_holds")
+      .select("id", { count: "exact", head: true })
+      .eq("service_id", input.serviceId)
+      .eq("commune_id", input.communeId)
+      .eq("date", input.date)
+      .eq("time", input.time)
+      .eq("status", "active")
+      .gt("expires_at", new Date().toISOString())
+      .neq("id", input.excludeHoldId ?? "00000000-0000-0000-0000-000000000000"),
+  ]);
+
+  if (bookings.error || holds.error) {
+    return { total: null as number | null, error: bookings.error ?? holds.error };
+  }
+
+  return { total: (bookings.count ?? 0) + (holds.count ?? 0), error: null };
+}
+
 export async function POST(req: Request) {
   const ip = getRequestIp(new Headers(req.headers));
   const limit = rateLimit(`checkout:${ip}`, { windowMs: 10 * 60_000, max: 6 });
@@ -223,6 +264,24 @@ export async function POST(req: Request) {
 
   const holdRow = holdResult.hold;
   let bookingId: string | null = null;
+
+  if (holdRow && isWithinTemporarySingleOperatorWindow(holdRow.date)) {
+    if (!isAllowedAgendaTime(holdRow.date, holdRow.time)) {
+      return NextResponse.json({ error: "slot_not_available" }, { status: 409 });
+    }
+
+    const current = await countTemporaryWindowReservations(supabase, {
+      serviceId: holdRow.service_id,
+      communeId: holdRow.commune_id,
+      date: holdRow.date,
+      time: holdRow.time,
+      excludeHoldId: holdRow.id,
+    });
+    if (current.error) return NextResponse.json({ error: "checkout_failed" }, { status: 500 });
+    if ((current.total ?? 0) >= TEMP_SINGLE_OPERATOR_CAPACITY) {
+      return NextResponse.json({ error: "slot_full" }, { status: 409 });
+    }
+  }
 
   if (!holdRow || holdRow.status === "converted") {
     const existing = await supabase

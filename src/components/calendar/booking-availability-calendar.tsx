@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { getAgendaTimesForDate } from "@/lib/availability-window";
 import { addDaysIso, getSantiagoTodayIso, isoDateToLocalNoon, toIsoDate } from "@/lib/time";
 import { apiJson } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -17,16 +18,17 @@ type Slot = {
   time: string;
   remaining: number;
   available: boolean;
+  capacity?: number;
+  reserved?: number;
+  demand?: string;
 };
-
-const FIXED_AGENDA_TIMES = new Set(["07:30", "09:30", "11:30", "13:30", "15:30"]);
 
 function formatSlotTime(time: string) {
   return time.slice(0, 5);
 }
 
 function normalizeSlotsToAgenda(slots: Slot[]) {
-  return slots.filter((slot) => FIXED_AGENDA_TIMES.has(formatSlotTime(slot.time)));
+  return slots.filter((slot) => getAgendaTimesForDate(slot.date).some((time) => time === formatSlotTime(slot.time)));
 }
 
 export function BookingAvailabilityCalendar() {

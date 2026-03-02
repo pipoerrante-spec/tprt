@@ -175,7 +175,7 @@ Respuesta:
       "service": {
         "id": "uuid",
         "name": "Revisión técnica inteligente",
-        "base_price": 50
+        "base_price": 85000
       },
       "commune": {
         "id": "uuid",
@@ -187,7 +187,7 @@ Respuesta:
         "booking_id": "uuid",
         "status": "paid",
         "provider": "transbank_webpay",
-        "amount_clp": 50,
+        "amount_clp": 85000,
         "currency": "CLP",
         "external_ref": "token",
         "created_at": "2026-03-01T22:01:00.000Z"
@@ -237,7 +237,8 @@ Los payloads entrantes quedan registrados en `public.webhooks_log` para luego pr
 - Carga en Vercel: `TRANSBANK_ENV=production`
 - Carga en Vercel: `TRANSBANK_COMMERCE_CODE=<Tbk-Api-Key-Id / código de comercio>`
 - Carga en Vercel: `TRANSBANK_API_KEY=<Tbk-Api-Key-Secret productiva>`
-- El sitio expone un único producto de prueba visible por `CLP 50`, usable para la transacción real solicitada por Transbank.
+- El sitio opera con precio comercial `CLP 85.000`.
+- Si quieres volver a habilitar descuentos, define `NEXT_PUBLIC_ACTIVE_COUPON_CODE` y `NEXT_PUBLIC_ACTIVE_COUPON_DISCOUNT_PERCENT`.
 
 ## Próximos pasos sugeridos
 

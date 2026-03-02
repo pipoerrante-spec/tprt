@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { buildDemoSlots, ensureDemoCoverageAndRules } from "@/lib/demo/availability";
+import { applyTemporaryAvailabilityWindow } from "@/lib/availability-window";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -35,18 +36,24 @@ export async function GET(req: Request) {
   const { data, error } = await supabase.rpc("get_availability_slots", payload);
 
   if (!error && (data?.length ?? 0) > 0) {
-    return NextResponse.json({ slots: data }, { status: 200, headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json(
+      { slots: applyTemporaryAvailabilityWindow(data) },
+      { status: 200, headers: { "Cache-Control": "no-store" } },
+    );
   }
 
   await ensureDemoCoverageAndRules(supabase, parsed.data.serviceId, parsed.data.communeId).catch(() => undefined);
 
   const retry = await supabase.rpc("get_availability_slots", payload);
   if (!retry.error && (retry.data?.length ?? 0) > 0) {
-    return NextResponse.json({ slots: retry.data }, { status: 200, headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json(
+      { slots: applyTemporaryAvailabilityWindow(retry.data) },
+      { status: 200, headers: { "Cache-Control": "no-store" } },
+    );
   }
 
   return NextResponse.json(
-    { slots: buildDemoSlots(parsed.data.dateFrom, parsed.data.dateTo) },
+    { slots: applyTemporaryAvailabilityWindow(buildDemoSlots(parsed.data.dateFrom, parsed.data.dateTo)) },
     { status: 200, headers: { "Cache-Control": "no-store" } },
   );
 }

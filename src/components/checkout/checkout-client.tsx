@@ -20,7 +20,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, CreditCard, Shield } from "lucide-react";
 import { normalizePlate } from "@/lib/vehicle/plate";
-import { SITE_PRODUCT_PRICE_CLP } from "@/lib/pricing";
+import {
+  SITE_PRODUCT_PRICE_CLP,
+  applyDiscount,
+  getCouponDiscountPercent,
+  hasActiveCouponConfigured,
+  normalizeCouponCode,
+} from "@/lib/pricing";
 
 type HoldPublic = {
   id: string;
@@ -50,6 +56,7 @@ const formSchema = z.object({
     .refine((v) => !v || /^\d{4}$/.test(v), "Año inválido"),
   address: z.string().trim().min(5, "Ingresa una dirección").max(160),
   notes: z.string().trim().max(500).optional(),
+  couponCode: z.string().trim().max(32).optional(),
   consentPrivacy: z.boolean().refine((v) => v === true, "Debes aceptar la política de privacidad"),
   provider: z.literal("transbank_webpay"),
 });
@@ -72,11 +79,14 @@ function formatClp(amount: number) {
 
 export function CheckoutClient({
   holdId,
+  initialCouponCode,
 }: {
   holdId: string | null;
+  initialCouponCode: string | null;
 }) {
   const router = useRouter();
   const [effectiveHoldId, setEffectiveHoldId] = React.useState<string | null>(holdId);
+  const normalizedInitialCoupon = normalizeCouponCode(initialCouponCode);
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -89,6 +99,7 @@ export function CheckoutClient({
       vehicleYear: "",
       address: "",
       notes: "",
+      couponCode: normalizedInitialCoupon ?? "",
       consentPrivacy: false,
       provider: "transbank_webpay",
     },
@@ -115,6 +126,7 @@ export function CheckoutClient({
       "vehicleYear",
       "address",
       "notes",
+      "couponCode",
     ];
     for (const field of fields) {
       const current = form.getValues(field);
@@ -141,8 +153,9 @@ export function CheckoutClient({
     if (holdId || !effectiveHoldId) return;
     const url = new URL(window.location.href);
     url.searchParams.set("holdId", effectiveHoldId);
+    if (normalizedInitialCoupon) url.searchParams.set("coupon", normalizedInitialCoupon);
     router.replace(url.pathname + "?" + url.searchParams.toString());
-  }, [effectiveHoldId, holdId, router]);
+  }, [effectiveHoldId, holdId, normalizedInitialCoupon, router]);
 
   React.useEffect(() => {
     const sub = form.watch((values) => {
@@ -159,6 +172,7 @@ export function CheckoutClient({
           vehicleYear: values.vehicleYear ?? "",
           address: values.address ?? "",
           notes: values.notes ?? "",
+          couponCode: values.couponCode ?? "",
         }),
       );
     });
@@ -167,6 +181,7 @@ export function CheckoutClient({
 
   const consentPrivacy = useWatch({ control: form.control, name: "consentPrivacy" });
   const vehiclePlate = useWatch({ control: form.control, name: "vehiclePlate" });
+  const couponCode = useWatch({ control: form.control, name: "couponCode" });
   const lastLookupPlateRef = React.useRef<string>("");
 
   const vehicleLookup = useMutation({
@@ -251,6 +266,7 @@ export function CheckoutClient({
           vehicleYear: values.vehicleYear ? Number(values.vehicleYear) : null,
           address: values.address,
           notes: values.notes || null,
+          couponCode: values.couponCode || null,
           provider: "transbank_webpay",
         }),
       });
@@ -270,6 +286,7 @@ export function CheckoutClient({
       else if (code === "slot_not_available") {
         toast.error("Ese horario ya no está disponible. Vuelve al carrito y selecciona otro.");
       }
+      else if (code === "invalid_coupon") toast.error("Cupón inválido. Usa un código válido.");
       else if (code.includes("not_implemented") || code.includes("not_configured")) {
         toast.error("Proveedor de pago no disponible en este entorno.");
       } else toast.error("No pudimos iniciar el pago. Intenta nuevamente.");
@@ -278,6 +295,10 @@ export function CheckoutClient({
 
   const onSubmit = form.handleSubmit((values) => startCheckout.mutate(values));
   const baseAmountClp = service?.base_price ?? SITE_PRODUCT_PRICE_CLP;
+  const couponEnabled = hasActiveCouponConfigured();
+  const normalizedCouponCode = normalizeCouponCode(couponCode);
+  const previewDiscountPercent = couponEnabled ? getCouponDiscountPercent(normalizedCouponCode) : 0;
+  const previewAmounts = applyDiscount(baseAmountClp, previewDiscountPercent);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -356,8 +377,20 @@ export function CheckoutClient({
               {service ? (
                 <>
                   <div className="sm:col-span-2 flex items-center justify-between text-sm">
+                    <div className="text-xs text-muted-foreground">Subtotal</div>
+                    <div className="font-medium">{formatClp(baseAmountClp)}</div>
+                  </div>
+                  {couponEnabled ? (
+                    <div className="sm:col-span-2 flex items-center justify-between text-sm">
+                      <div className="text-xs text-muted-foreground">Descuento</div>
+                      <div className={previewDiscountPercent > 0 ? "font-medium text-emerald-600" : "font-medium"}>
+                        {previewDiscountPercent > 0 ? `- ${formatClp(previewAmounts.discountAmountClp)}` : formatClp(0)}
+                      </div>
+                    </div>
+                  ) : null}
+                  <div className="sm:col-span-2 flex items-center justify-between text-sm">
                     <div className="text-xs text-muted-foreground">Total</div>
-                    <div className="font-semibold">{formatClp(baseAmountClp)}</div>
+                    <div className="font-semibold">{formatClp(previewAmounts.finalAmountClp)}</div>
                   </div>
                 </>
               ) : null}
@@ -441,6 +474,12 @@ export function CheckoutClient({
                 <Label htmlFor="notes">Notas (opcional)</Label>
                 <Textarea id="notes" placeholder="Indicaciones, referencia, horario preferido…" {...form.register("notes")} />
               </div>
+              {couponEnabled ? (
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="couponCode">¿Tienes un cupón de descuento? Ingrésalo acá.</Label>
+                  <Input id="couponCode" placeholder="Cupón de descuento" {...form.register("couponCode")} />
+                </div>
+              ) : null}
             </div>
 
             <div className="space-y-4">
@@ -483,7 +522,13 @@ export function CheckoutClient({
               <Button
                 variant="outline"
                 type="button"
-                onClick={() => router.push(`/carrito?holdId=${effectiveHoldId}`)}
+                onClick={() =>
+                  router.push(
+                    couponEnabled && normalizedCouponCode
+                      ? `/carrito?holdId=${effectiveHoldId}&coupon=${encodeURIComponent(normalizedCouponCode)}`
+                      : `/carrito?holdId=${effectiveHoldId}`,
+                  )
+                }
               >
                 Volver al carrito
               </Button>

@@ -1,13 +1,30 @@
-export const SITE_PRODUCT_PRICE_CLP = 50;
+export const SITE_PRODUCT_PRICE_CLP = 85_000;
+
+function getConfiguredCoupon() {
+  const code = (process.env.NEXT_PUBLIC_ACTIVE_COUPON_CODE ?? "").trim().toUpperCase();
+  const discountPercent = Number(process.env.NEXT_PUBLIC_ACTIVE_COUPON_DISCOUNT_PERCENT ?? 0);
+
+  if (!code || !Number.isFinite(discountPercent)) return null;
+
+  const safePercent = Math.max(0, Math.min(100, Math.trunc(discountPercent)));
+  if (safePercent <= 0) return null;
+
+  return { code, discountPercent: safePercent };
+}
 
 export function normalizeCouponCode(raw?: string | null) {
   const value = (raw ?? "").trim().toUpperCase();
   return value.length > 0 ? value : null;
 }
 
-export function getCouponDiscountPercent(_couponCode?: string | null) {
-  void _couponCode;
-  return 0;
+export function hasActiveCouponConfigured() {
+  return getConfiguredCoupon() !== null;
+}
+
+export function getCouponDiscountPercent(couponCode?: string | null) {
+  const configured = getConfiguredCoupon();
+  if (!configured) return 0;
+  return couponCode === configured.code ? configured.discountPercent : 0;
 }
 
 export function applyDiscount(baseAmountClp: number, discountPercent: number) {
