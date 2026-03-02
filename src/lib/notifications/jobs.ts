@@ -134,3 +134,20 @@ export async function processDueNotificationJobs({ limit = 25 }: { limit?: numbe
 
   return { processed, sent, failed };
 }
+
+export async function flushImmediateNotificationJobs({ limit = 25, passes = 3 }: { limit?: number; passes?: number } = {}) {
+  let totalProcessed = 0;
+  let totalSent = 0;
+  let totalFailed = 0;
+
+  for (let pass = 0; pass < passes; pass += 1) {
+    const result = await processDueNotificationJobs({ limit });
+    totalProcessed += result.processed;
+    totalSent += result.sent;
+    totalFailed += result.failed;
+
+    if (result.processed === 0) break;
+  }
+
+  return { processed: totalProcessed, sent: totalSent, failed: totalFailed };
+}

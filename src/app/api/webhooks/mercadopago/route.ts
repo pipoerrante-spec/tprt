@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
 import { getEnv } from "@/lib/env";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { enqueueBookingPaidJobs, processDueNotificationJobs } from "@/lib/notifications/jobs";
+import { enqueueBookingPaidJobs, flushImmediateNotificationJobs } from "@/lib/notifications/jobs";
 
 export const runtime = "nodejs";
 
@@ -39,9 +39,9 @@ async function handle(req: Request) {
   const client = new MercadoPagoConfig({ accessToken: env.MERCADOPAGO_ACCESS_TOKEN });
   const paymentApi = new Payment(client);
 
-  const payment = await paymentApi.get({ id: mpPaymentId });
-  const status = String((payment as any).status ?? "");
-  const externalReference = String((payment as any).external_reference ?? "");
+  const payment = (await paymentApi.get({ id: mpPaymentId })) as Record<string, unknown>;
+  const status = String(payment.status ?? "");
+  const externalReference = String(payment.external_reference ?? "");
 
   const supabase = getSupabaseAdmin();
   try {
@@ -75,7 +75,7 @@ async function handle(req: Request) {
     const bookingId = pay.data?.booking_id ?? null;
     if (bookingId) {
       await enqueueBookingPaidJobs(bookingId).catch(() => null);
-      await processDueNotificationJobs({ limit: 10 }).catch(() => null);
+      await flushImmediateNotificationJobs({ limit: 10, passes: 3 }).catch(() => null);
     }
   }
 

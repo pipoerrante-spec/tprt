@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getEnv } from "@/lib/env";
 import { getRequestOrigin } from "@/lib/http";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { enqueueBookingPaidJobs, processDueNotificationJobs } from "@/lib/notifications/jobs";
+import { enqueueBookingPaidJobs, flushImmediateNotificationJobs } from "@/lib/notifications/jobs";
 import { WebpayPlus } from "transbank-sdk";
 import { getTransbankOptions } from "@/lib/payments/transbank-config";
 
@@ -202,7 +202,7 @@ async function handleTransbankReturn(req: Request) {
       await supabase.from("payments").update(buildGatewayMetadata(committed)).eq("id", paymentId);
       if (mappedStatus === "paid" && bookingId) {
         await enqueueBookingPaidJobs(bookingId).catch(() => null);
-        await processDueNotificationJobs({ limit: 10 }).catch(() => null);
+        await flushImmediateNotificationJobs({ limit: 10, passes: 3 }).catch(() => null);
       }
     }
 

@@ -19,6 +19,29 @@ type SendEmailInput = {
   html: string;
 };
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parseRetryAfterMs(res: Response) {
+  const retryAfter = res.headers.get("retry-after");
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    if (Number.isFinite(seconds) && seconds > 0) return seconds * 1000;
+  }
+
+  const reset = res.headers.get("ratelimit-reset");
+  if (reset) {
+    const unixSeconds = Number(reset);
+    if (Number.isFinite(unixSeconds) && unixSeconds > 0) {
+      const ms = unixSeconds * 1000 - Date.now();
+      if (ms > 0) return ms;
+    }
+  }
+
+  return 1_000;
+}
+
 function normalizeRecipients(value?: string | string[] | null) {
   const seen = new Set<string>();
   return (Array.isArray(value) ? value : value ? [value] : [])
@@ -51,26 +74,34 @@ async function sendEmail({ to, cc, subject, html }: SendEmailInput) {
     if (!env.RESEND_API_KEY) throw new Error("resend_not_configured");
     if (!env.EMAIL_FROM) throw new Error("email_from_not_configured");
 
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${env.RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: env.EMAIL_FROM,
-        to: toRecipients,
-        ...(ccRecipients.length > 0 ? { cc: ccRecipients } : null),
-        subject,
-        html,
-        ...(env.TPRT_SUPPORT_EMAIL ? { reply_to: env.TPRT_SUPPORT_EMAIL } : null),
-      }),
-    });
-    if (!res.ok) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${env.RESEND_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: env.EMAIL_FROM,
+          to: toRecipients,
+          ...(ccRecipients.length > 0 ? { cc: ccRecipients } : null),
+          subject,
+          html,
+          ...(env.TPRT_SUPPORT_EMAIL ? { reply_to: env.TPRT_SUPPORT_EMAIL } : null),
+        }),
+      });
+      if (res.ok) {
+        return;
+      }
+
       const text = await res.text().catch(() => "");
+      const transient = res.status === 429 || res.status >= 500;
+      if (transient && attempt < 2) {
+        await sleep(parseRetryAfterMs(res) + attempt * 250);
+        continue;
+      }
       throw new Error(`resend_failed:${res.status}:${text.slice(0, 200)}`);
     }
-    return;
   }
 
   throw new Error("email_provider_not_configured");

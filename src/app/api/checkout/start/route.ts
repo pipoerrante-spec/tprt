@@ -4,7 +4,11 @@ import { getEnv } from "@/lib/env";
 import { getRequestOrigin } from "@/lib/http";
 import { sendBookingConfirmationEmail, sendOperationsNewServiceEmail } from "@/lib/notifications/email";
 import { getRequestIp, rateLimit } from "@/lib/rate-limit";
-import { enqueueBookingPaidJobs, enqueueImmediateBookingEmailJobs, processDueNotificationJobs } from "@/lib/notifications/jobs";
+import {
+  enqueueBookingPaidJobs,
+  enqueueImmediateBookingEmailJobs,
+  flushImmediateNotificationJobs,
+} from "@/lib/notifications/jobs";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getPaymentsProvider } from "@/lib/payments/provider";
 import {
@@ -374,7 +378,7 @@ export async function POST(req: Request) {
   if (env.TRANSBANK_ENV === "qa" && providerId === "transbank_webpay") {
     try {
       await enqueueImmediateBookingEmailJobs(bookingId);
-      await processDueNotificationJobs({ limit: 10 });
+      await flushImmediateNotificationJobs({ limit: 10, passes: 3 });
     } catch (error) {
       console.error("[checkout.start][qa_pre_payment_notifications_failed]", error);
       await Promise.allSettled([
@@ -408,7 +412,7 @@ export async function POST(req: Request) {
 
     try {
       await enqueueBookingPaidJobs(bookingId);
-      await processDueNotificationJobs({ limit: 10 });
+      await flushImmediateNotificationJobs({ limit: 10, passes: 3 });
     } catch (error) {
       console.error("[checkout.start][qa_notifications_failed]", error);
       await Promise.allSettled([

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getEnv } from "@/lib/env";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { enqueueBookingPaidJobs, processDueNotificationJobs } from "@/lib/notifications/jobs";
+import { enqueueBookingPaidJobs, flushImmediateNotificationJobs } from "@/lib/notifications/jobs";
 
 export const runtime = "nodejs";
 
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     const bookingId = payment.data?.booking_id;
     if (bookingId) {
       await enqueueBookingPaidJobs(bookingId).catch(() => null);
-      await processDueNotificationJobs({ limit: 10 }).catch(() => null);
+      await flushImmediateNotificationJobs({ limit: 10, passes: 3 }).catch(() => null);
     }
   }
 
