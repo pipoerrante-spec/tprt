@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { MercadoPagoConfig, Payment } from "mercadopago";
+import { trackBookingPhase } from "@/lib/bookings/phases";
 import { getEnv } from "@/lib/env";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { enqueueBookingPaidJobs, flushImmediateNotificationJobs } from "@/lib/notifications/jobs";
@@ -74,8 +75,37 @@ async function handle(req: Request) {
     const pay = await supabase.from("payments").select("booking_id").eq("id", externalReference).maybeSingle();
     const bookingId = pay.data?.booking_id ?? null;
     if (bookingId) {
+      await trackBookingPhase({
+        bookingId,
+        paymentId: externalReference,
+        phase: "payment_authorized",
+        source: "mercadopago",
+        payload: {
+          mpPaymentId,
+          status,
+          externalReference,
+        },
+      });
+    }
+    if (bookingId) {
       await enqueueBookingPaidJobs(bookingId).catch(() => null);
       await flushImmediateNotificationJobs({ limit: 10, passes: 3 }).catch(() => null);
+    }
+  } else {
+    const pay = await supabase.from("payments").select("booking_id").eq("id", externalReference).maybeSingle();
+    const bookingId = pay.data?.booking_id ?? null;
+    if (bookingId) {
+      await trackBookingPhase({
+        bookingId,
+        paymentId: externalReference,
+        phase: mapped === "failed" ? "payment_failed" : "payment_refunded",
+        source: "mercadopago",
+        payload: {
+          mpPaymentId,
+          status,
+          externalReference,
+        },
+      });
     }
   }
 

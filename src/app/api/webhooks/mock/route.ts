@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { trackBookingPhase } from "@/lib/bookings/phases";
 import { getEnv } from "@/lib/env";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { enqueueBookingPaidJobs, flushImmediateNotificationJobs } from "@/lib/notifications/jobs";
@@ -52,13 +53,27 @@ export async function POST(req: Request) {
     await supabase.from("webhooks_log").update({ processed: true }).eq("id", logInsert.data.id);
   }
 
+  const payment = await supabase
+    .from("payments")
+    .select("booking_id")
+    .eq("id", parsed.data.paymentId)
+    .maybeSingle();
+  const bookingId = payment.data?.booking_id ?? null;
+
+  if (bookingId) {
+    await trackBookingPhase({
+      bookingId,
+      paymentId: parsed.data.paymentId,
+      phase: parsed.data.status === "paid" ? "payment_authorized" : "payment_failed",
+      source: "mock",
+      payload: {
+        externalRef: parsed.data.externalRef ?? null,
+        webhookLogId: logInsert.data?.id ?? null,
+      },
+    });
+  }
+
   if (parsed.data.status === "paid") {
-    const payment = await supabase
-      .from("payments")
-      .select("booking_id")
-      .eq("id", parsed.data.paymentId)
-      .maybeSingle();
-    const bookingId = payment.data?.booking_id;
     if (bookingId) {
       await enqueueBookingPaidJobs(bookingId).catch(() => null);
       await flushImmediateNotificationJobs({ limit: 10, passes: 3 }).catch(() => null);

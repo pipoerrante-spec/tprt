@@ -2,6 +2,7 @@ import { getEnv } from "@/lib/env";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { appendBookingToPlanilla } from "@/lib/notifications/planilla";
 import {
+  sendBookingStartedEmail,
   sendBookingConfirmationEmail,
   sendBookingReminder24hEmail,
   sendOperationsNewServiceEmail,
@@ -48,13 +49,12 @@ export async function enqueueBookingPaidJobs(bookingId: string) {
   if (upsert.error) throw new Error("notification_jobs_upsert_failed");
 }
 
-export async function enqueueImmediateBookingEmailJobs(bookingId: string) {
+export async function enqueueBookingStartedJobs(bookingId: string) {
   const supabase = getSupabaseAdmin();
   const nowIso = new Date().toISOString();
 
   const rows: Array<{ booking_id: string; kind: string; channel: string; send_at: string }> = [
-    { booking_id: bookingId, kind: "customer_confirmation_email", channel: "email", send_at: nowIso },
-    { booking_id: bookingId, kind: "ops_new_service_email", channel: "email", send_at: nowIso },
+    { booking_id: bookingId, kind: "customer_started_email", channel: "email", send_at: nowIso },
   ];
 
   const upsert = await supabase.from("notification_jobs").upsert(rows, { onConflict: "booking_id,kind" });
@@ -65,6 +65,9 @@ async function runJob(job: NotificationJobRow) {
   const env = getEnv();
 
   switch (job.kind) {
+    case "customer_started_email":
+      await sendBookingStartedEmail(job.booking_id);
+      return;
     case "customer_confirmation_email":
       await sendBookingConfirmationEmail(job.booking_id);
       return;

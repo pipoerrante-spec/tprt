@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { trackBookingPhase } from "@/lib/bookings/phases";
 import { getEnv } from "@/lib/env";
 import { getRequestOrigin } from "@/lib/http";
-import { sendBookingConfirmationEmail, sendOperationsNewServiceEmail } from "@/lib/notifications/email";
+import {
+  sendBookingConfirmationEmail,
+  sendBookingStartedEmail,
+  sendOperationsNewServiceEmail,
+} from "@/lib/notifications/email";
 import { getRequestIp, rateLimit } from "@/lib/rate-limit";
 import {
   enqueueBookingPaidJobs,
-  enqueueImmediateBookingEmailJobs,
+  enqueueBookingStartedJobs,
   flushImmediateNotificationJobs,
 } from "@/lib/notifications/jobs";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -318,6 +323,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "checkout_failed" }, { status: 500 });
   }
 
+  await trackBookingPhase({
+    bookingId,
+    phase: "booking_started",
+    source: "checkout",
+    payload: {
+      holdId: parsed.data.holdId,
+      email: parsed.data.email,
+      provider: parsed.data.provider ?? null,
+    },
+  });
+
   const bookingRow = await supabase
     .from("bookings")
     .select("id,service_id,email,status")
@@ -372,21 +388,8 @@ export async function POST(req: Request) {
   }
   const { discountAmountClp, finalAmountClp } = applyDiscount(baseAmountClp, discountPercent);
   const amountClp = finalAmountClp;
-  const providerId = parsed.data.provider ?? (env.TPRT_PAYMENTS_PROVIDER_ACTIVE === "mercadopago" ? "mercadopago" : "transbank_webpay");
+  const providerId = parsed.data.provider ?? env.TPRT_PAYMENTS_PROVIDER_ACTIVE;
   const provider = getPaymentsProvider(providerId);
-
-  if (env.TRANSBANK_ENV === "qa" && providerId === "transbank_webpay") {
-    try {
-      await enqueueImmediateBookingEmailJobs(bookingId);
-      await flushImmediateNotificationJobs({ limit: 10, passes: 3 });
-    } catch (error) {
-      console.error("[checkout.start][qa_pre_payment_notifications_failed]", error);
-      await Promise.allSettled([
-        sendBookingConfirmationEmail(bookingId),
-        sendOperationsNewServiceEmail(bookingId),
-      ]);
-    }
-  }
 
   const payment = await supabase.rpc("create_payment_for_booking", {
     p_booking_id: bookingId,
@@ -400,7 +403,40 @@ export async function POST(req: Request) {
 
   const paymentId = payment.data as unknown as string;
 
+  await trackBookingPhase({
+    bookingId,
+    paymentId,
+    phase: "payment_record_created",
+    source: "checkout",
+    payload: {
+      provider: providerId,
+      amountClp,
+      baseAmountClp,
+      discountAmountClp,
+      discountPercent,
+      couponCode,
+    },
+  });
+
   if (env.TRANSBANK_ENV === "qa" && providerId === "transbank_webpay") {
+    await trackBookingPhase({
+      bookingId,
+      paymentId,
+      phase: "payment_session_skipped_qa",
+      source: "checkout",
+      payload: {
+        provider: providerId,
+      },
+    });
+
+    try {
+      await enqueueBookingStartedJobs(bookingId);
+      await flushImmediateNotificationJobs({ limit: 10, passes: 3 });
+    } catch (error) {
+      console.error("[checkout.start][started_notifications_failed]", error);
+      await Promise.allSettled([sendBookingStartedEmail(bookingId)]);
+    }
+
     const finalizePayment = await supabase.rpc("set_payment_status", {
       p_payment_id: paymentId,
       p_status: "paid",
@@ -409,6 +445,16 @@ export async function POST(req: Request) {
     if (finalizePayment.error) {
       return NextResponse.json({ error: "payment_commit_failed" }, { status: 500 });
     }
+
+    await trackBookingPhase({
+      bookingId,
+      paymentId,
+      phase: "payment_marked_paid_qa",
+      source: "checkout",
+      payload: {
+        externalRef: `qa:${paymentId}`,
+      },
+    });
 
     try {
       await enqueueBookingPaidJobs(bookingId);
@@ -449,12 +495,44 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     await supabase.from("payments").update({ status: "failed" }).eq("id", paymentId);
+    await trackBookingPhase({
+      bookingId,
+      paymentId,
+      phase: "payment_session_create_failed",
+      source: "checkout",
+      payload: {
+        provider: providerId,
+        message: e instanceof Error ? e.message : "payment_provider_error",
+      },
+    });
     const message = e instanceof Error ? e.message : "payment_provider_error";
     return NextResponse.json({ error: message }, { status: 501 });
   }
 
   if (session.externalRef) {
     await supabase.from("payments").update({ external_ref: session.externalRef }).eq("id", paymentId);
+  }
+
+  await trackBookingPhase({
+    bookingId,
+    paymentId,
+    phase: "payment_session_created",
+    source: "checkout",
+    payload: {
+      provider: providerId,
+      redirectUrl: session.redirectUrl,
+      externalRef: session.externalRef ?? null,
+      amountClp,
+      couponCode,
+    },
+  });
+
+  try {
+    await enqueueBookingStartedJobs(bookingId);
+    await flushImmediateNotificationJobs({ limit: 10, passes: 3 });
+  } catch (error) {
+    console.error("[checkout.start][started_notifications_failed]", error);
+    await Promise.allSettled([sendBookingStartedEmail(bookingId)]);
   }
 
   return NextResponse.json(

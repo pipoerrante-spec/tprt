@@ -183,7 +183,70 @@ export async function sendBookingConfirmationEmail(bookingId: string) {
     </div>
   `;
 
-  await sendEmail({ to: booking.data.email, cc: "contacto@gvrt.cl", subject, html });
+  await sendEmail({ to: booking.data.email, cc: env.TPRT_SUPPORT_EMAIL ?? "contacto@gvrt.cl", subject, html });
+}
+
+export async function sendBookingStartedEmail(bookingId: string) {
+  const supabase = getSupabaseAdmin();
+
+  const booking = await supabase
+    .from("bookings")
+    .select(
+      "id,status,date,time,customer_name,email,phone,address,notes,vehicle_plate,vehicle_make,vehicle_model,vehicle_year,service_id,commune_id",
+    )
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (booking.error || !booking.data) throw new Error("booking_not_found");
+
+  const service = await supabase
+    .from("services")
+    .select("name,base_price")
+    .eq("id", booking.data.service_id)
+    .maybeSingle();
+
+  const payment = await supabase
+    .from("payments")
+    .select("status,provider,amount_clp,currency,created_at")
+    .eq("booking_id", bookingId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const env = getEnv();
+  const total = payment.data?.amount_clp ?? service.data?.base_price ?? 0;
+  const whenUtc = bookingLocalDateTime(booking.data.date, booking.data.time);
+  const whenDateText = formatInTimeZone(whenUtc, TZ, "yyyy-MM-dd");
+  const whenTimeText = formatInTimeZone(whenUtc, TZ, "HH:mm");
+
+  const vehicleText = [booking.data.vehicle_make, booking.data.vehicle_model].filter(Boolean).join(" ");
+
+  const subject = "Tu cupo ya quedo reservado: falta solo el pago";
+  const html = `
+    <div style="font-family: ui-sans-serif, system-ui; line-height:1.6; color:#0b1220">
+      <p>Hola ${booking.data.customer_name},</p>
+      <p><b>Ya registramos tu reserva correctamente</b> y tu cupo quedo tomado por ti.</p>
+      <p>Lo mas importante ya esta avanzado: tus datos, tu horario y tu solicitud quedaron guardados. <b>Solo falta completar el pago</b> para cerrar el proceso y dejar tu gestion confirmada.</p>
+      <div style="margin:16px 0;padding:16px;border:1px solid #dbe4f0;border-radius:16px;background:#f8fbff">
+        <p style="margin:0 0 8px 0"><b>Resumen de tu solicitud</b></p>
+        <p style="margin:4px 0">Servicio: ${service.data?.name ?? "Revision tecnica"}</p>
+        <p style="margin:4px 0">Fecha: ${whenDateText}</p>
+        <p style="margin:4px 0">Hora: ${whenTimeText}</p>
+        <p style="margin:4px 0">Direccion: ${booking.data.address}</p>
+        <p style="margin:4px 0">Vehiculo: ${vehicleText || "—"}${booking.data.vehicle_plate ? ` - ${booking.data.vehicle_plate}` : ""}</p>
+        <p style="margin:4px 0">Total pendiente: <b>${formatClp(total)}</b></p>
+      </div>
+      <p>En cuanto completes el pago, te enviaremos la confirmacion final automaticamente y activaremos el seguimiento de tu reserva.</p>
+      <p>Si se te interrumpio el flujo o necesitas ayuda para cerrarlo, responde este correo${
+        env.TPRT_SUPPORT_WHATSAPP ? ` o escribenos por WhatsApp ${env.TPRT_SUPPORT_WHATSAPP}` : ""
+      }.</p>
+      <p>Estas a un solo paso de dejar tu revision tecnica resuelta.</p>
+      <p>Equipo GVRT Revision Tecnica</p>
+      <hr />
+      <p style="font-size:12px;color:#5b6777">Reserva iniciada · ID: ${booking.data.id}</p>
+    </div>
+  `;
+
+  await sendEmail({ to: booking.data.email, cc: env.TPRT_SUPPORT_EMAIL ?? "contacto@gvrt.cl", subject, html });
 }
 
 export async function sendOperationsNewServiceEmail(bookingId: string) {

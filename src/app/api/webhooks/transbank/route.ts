@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { trackBookingPhase } from "@/lib/bookings/phases";
 import { getEnv } from "@/lib/env";
 import { getRequestOrigin } from "@/lib/http";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -155,6 +156,17 @@ async function handleTransbankReturn(req: Request) {
           : null);
 
       if (failedBookingId) {
+        await trackBookingPhase({
+          bookingId: failedBookingId,
+          paymentId,
+          phase: "payment_aborted",
+          source: "transbank",
+          payload: {
+            tbkToken: params.tbkToken,
+            tbkOrder: params.tbkOrder,
+            tbkSession: params.tbkSession,
+          },
+        });
         return redirectToConfirmation(origin, failedBookingId);
       }
 
@@ -200,6 +212,23 @@ async function handleTransbankReturn(req: Request) {
         p_external_ref: token,
       });
       await supabase.from("payments").update(buildGatewayMetadata(committed)).eq("id", paymentId);
+      if (bookingId) {
+        await trackBookingPhase({
+          bookingId,
+          paymentId,
+          phase: mappedStatus === "paid" ? "payment_authorized" : "payment_failed",
+          source: "transbank",
+          payload: {
+            token,
+            status,
+            responseCode,
+            buyOrder: committed.buy_order ?? null,
+            sessionId: committed.session_id ?? null,
+            authorizationCode: committed.authorization_code ?? null,
+            cardLast4: committed.card_detail?.card_number ?? null,
+          },
+        });
+      }
       if (mappedStatus === "paid" && bookingId) {
         await enqueueBookingPaidJobs(bookingId).catch(() => null);
         await flushImmediateNotificationJobs({ limit: 10, passes: 3 }).catch(() => null);
