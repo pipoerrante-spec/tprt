@@ -54,6 +54,11 @@ Nota:
 - `TRANSBANK_API_KEY=<api_key_secret_productiva>`
 - `TRANSBANK_RETURN_SECRET=<secreto_interno_opcional>`
 
+Nota:
+
+- En este proyecto, `TRANSBANK_COMMERCE_CODE` corresponde al `Tbk-Api-Key-Id` que entrega Transbank para Webpay Plus.
+- El sitio deja publicado un producto de prueba visible por `CLP 50` para ejecutar la compra real final solicitada por Transbank.
+
 ## Casos que deben ejecutarse y guardar
 
 ### Aprobadas

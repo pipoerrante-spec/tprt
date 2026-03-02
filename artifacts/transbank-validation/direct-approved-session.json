@@ -1,0 +1,6 @@
+{
+  "bookingId": "22f4d1de-65e7-41ac-8672-88e4cc530f25",
+  "paymentId": "39aa7c75-a74e-4808-a6ce-26e7a2e08cb6",
+  "redirectUrl": "https://tprt-525fwgasr-hhs-projects-ac833934.vercel.app/pago/webpay?token_ws=01ab5e278a73341de6afee4812bde891e12aa5451e3f484fb23f21d993ae011d&url=https%3A%2F%2Fwebpay3gint.transbank.cl%2Fwebpayserver%2FinitTransaction",
+  "token": "01ab5e278a73341de6afee4812bde891e12aa5451e3f484fb23f21d993ae011d"
+}

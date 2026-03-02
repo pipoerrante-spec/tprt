@@ -1,0 +1,231 @@
+{
+  "url": "https://webpay3gint.transbank.cl/testcommercebank/authenticator.cgi",
+  "frames": [
+    {
+      "index": 0,
+      "url": "https://webpay3gint.transbank.cl/testcommercebank/authenticator.cgi",
+      "items": [
+        {
+          "tag": "H3",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Bienvenido",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "SPAN",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Fecha:",
+          "href": null,
+          "class": "bold"
+        },
+        {
+          "tag": "SPAN",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Comercio:",
+          "href": null,
+          "class": "bold"
+        },
+        {
+          "tag": "SPAN",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Monto:",
+          "href": null,
+          "class": "bold"
+        },
+        {
+          "tag": "SPAN",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Tarjeta:",
+          "href": null,
+          "class": "bold"
+        },
+        {
+          "tag": "SPAN",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Rut:",
+          "href": null,
+          "class": "bold"
+        },
+        {
+          "tag": "INPUT",
+          "type": "text",
+          "name": "rutClient",
+          "id": "rutClient",
+          "placeholder": null,
+          "value": null,
+          "text": "",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "SPAN",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Clave:",
+          "href": null,
+          "class": "bold"
+        },
+        {
+          "tag": "INPUT",
+          "type": "password",
+          "name": "passwordClient",
+          "id": "passwordClient",
+          "placeholder": null,
+          "value": null,
+          "text": "",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "INPUT",
+          "type": "submit",
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": "Aceptar",
+          "text": "",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "INPUT",
+          "type": "button",
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": "Cancelar",
+          "text": "",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "SPAN",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "",
+          "href": null,
+          "class": "error"
+        },
+        {
+          "tag": "INPUT",
+          "type": "hidden",
+          "name": "cardNumber",
+          "id": "",
+          "placeholder": null,
+          "value": "4511346660037060",
+          "text": "",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "INPUT",
+          "type": "hidden",
+          "name": "commerceCode",
+          "id": "",
+          "placeholder": null,
+          "value": "WEBPAY REST SIMULTANEA",
+          "text": "",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "INPUT",
+          "type": "hidden",
+          "name": "urlTransbank",
+          "id": "",
+          "placeholder": null,
+          "value": "https://webpay3gint.transbank.cl/webpayserver/dist/assets/nlayout/webpay-desktop-logo_color.svg",
+          "text": "",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "INPUT",
+          "type": "hidden",
+          "name": "amount",
+          "id": "",
+          "placeholder": null,
+          "value": "$ 85.000",
+          "text": "",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "INPUT",
+          "type": "hidden",
+          "name": "date",
+          "id": "",
+          "placeholder": null,
+          "value": "260301202009",
+          "text": "",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "INPUT",
+          "type": "hidden",
+          "name": "TBK_TOKEN",
+          "id": "",
+          "placeholder": null,
+          "value": "01abaa1fed9ac65c83f05bd0c54db06c783493caf47794686b1df7a0d9f31c07",
+          "text": "",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "INPUT",
+          "type": "hidden",
+          "name": "countLogin",
+          "id": "",
+          "placeholder": null,
+          "value": "0",
+          "text": "",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "INPUT",
+          "type": "hidden",
+          "name": "TBK_TOKEN",
+          "id": "",
+          "placeholder": null,
+          "value": "01abaa1fed9ac65c83f05bd0c54db06c783493caf47794686b1df7a0d9f31c07",
+          "text": "",
+          "href": null,
+          "class": null
+        }
+      ]
+    }
+  ]
+}

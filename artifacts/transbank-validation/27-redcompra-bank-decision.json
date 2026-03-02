@@ -1,0 +1,88 @@
+{
+  "url": "https://webpay3gint.transbank.cl/testcommercebank/authenticatorProcess.cgi",
+  "frames": [
+    {
+      "index": 0,
+      "url": "https://webpay3gint.transbank.cl/testcommercebank/authenticatorProcess.cgi",
+      "items": [
+        {
+          "tag": "INPUT",
+          "type": "hidden",
+          "name": "TBK_TOKEN",
+          "id": "",
+          "placeholder": null,
+          "value": "01abaa1fed9ac65c83f05bd0c54db06c783493caf47794686b1df7a0d9f31c07",
+          "text": "",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "H3",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Elija una opcion",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "SELECT",
+          "type": null,
+          "name": "vci",
+          "id": "vci",
+          "placeholder": null,
+          "value": null,
+          "text": "Aceptar Rechazar",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "INPUT",
+          "type": "submit",
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": "Continuar",
+          "text": "",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "INPUT",
+          "type": "hidden",
+          "name": "eci",
+          "id": "",
+          "placeholder": null,
+          "value": "5",
+          "text": "",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "INPUT",
+          "type": "hidden",
+          "name": "cavv",
+          "id": "",
+          "placeholder": null,
+          "value": "1234567890123456789012345678901234567890",
+          "text": "",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "INPUT",
+          "type": "hidden",
+          "name": "cardNumber",
+          "id": "",
+          "placeholder": null,
+          "value": "4511346660037060",
+          "text": "",
+          "href": null,
+          "class": null
+        }
+      ]
+    }
+  ]
+}

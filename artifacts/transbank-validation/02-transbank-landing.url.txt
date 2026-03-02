@@ -1,0 +1,1 @@
+https://webpay3gint.transbank.cl/webpayserver/init_transaction.cgi

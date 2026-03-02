@@ -11,10 +11,9 @@ export default async function CartPage({
 }) {
   const resolved = await Promise.resolve(searchParams);
   const holdId = typeof resolved.holdId === "string" ? resolved.holdId : null;
-  const couponCode = typeof resolved.coupon === "string" ? resolved.coupon : null;
   return (
     <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
-      <CartClient holdId={holdId} couponCode={couponCode} />
+      <CartClient holdId={holdId} />
     </main>
   );
 }

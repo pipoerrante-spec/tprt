@@ -1,0 +1,14 @@
+{
+  "status": 200,
+  "json": {
+    "bookingId": "498846f5-37e4-4793-aed4-ab07feac59ca",
+    "paymentId": "588f3b21-cc2e-45d2-a6bb-1e8b43d8dff4",
+    "provider": "transbank_webpay",
+    "redirectUrl": "/pago/webpay?token_ws=01ab0b752f1e3aae56eec902598eb5eb8924001902e0f6d79f2db6baf5f2475d&url=https%3A%2F%2Fwebpay3gint.transbank.cl%2Fwebpayserver%2FinitTransaction",
+    "amountClp": 85000,
+    "baseAmountClp": 85000,
+    "discountAmountClp": 0,
+    "discountPercent": 0,
+    "couponCode": null
+  }
+}

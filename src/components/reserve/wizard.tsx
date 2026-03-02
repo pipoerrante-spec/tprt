@@ -20,11 +20,7 @@ import { UrgencyTimer } from "./urgency-timer";
 import { Label } from "@/components/ui/label";
 import { GVRT_TERMS_SECTIONS } from "@/lib/legal/terms";
 import { isLikelyChilePlate, normalizePlate } from "@/lib/vehicle/plate";
-import {
-  applyDiscount,
-  getCouponDiscountPercent,
-  normalizeCouponCode,
-} from "@/lib/pricing";
+import { SITE_PRODUCT_PRICE_CLP } from "@/lib/pricing";
 
 const CHECKOUT_PREFILL_KEY = "gvrt_checkout_prefill_v1";
 const HOLD_STORAGE_KEY = "gvrt_hold_id_v1";
@@ -108,7 +104,6 @@ export function ReserveWizard() {
   const [termsModalOpen, setTermsModalOpen] = React.useState(false);
   const [termsChecked, setTermsChecked] = React.useState(false);
   const [pendingService, setPendingService] = React.useState<Service | null>(null);
-  const [couponCode, setCouponCode] = React.useState("");
   const [communeQuery, setCommuneQuery] = React.useState("");
 
 
@@ -160,7 +155,6 @@ export function ReserveWizard() {
         body: JSON.stringify({ serviceId: service!.id, communeId: commune!.id, ...input }),
       }),
     onSuccess: (data) => {
-      const normalizedCoupon = normalizeCouponCode(couponCode);
       const normalizedPatent = normalizePlate(patent);
       if (typeof window !== "undefined") {
         window.localStorage.setItem(
@@ -175,7 +169,6 @@ export function ReserveWizard() {
             vehicleYear: vehicleYear.trim(),
             address: address.trim(),
             notes: notes.trim(),
-            couponCode: normalizedCoupon ?? "",
             provider: "transbank_webpay",
           }),
         );
@@ -183,7 +176,6 @@ export function ReserveWizard() {
       }
       const nextUrl = new URL("/carrito", window.location.origin);
       nextUrl.searchParams.set("holdId", data.holdId);
-      if (normalizedCoupon) nextUrl.searchParams.set("coupon", normalizedCoupon);
       router.push(nextUrl.pathname + "?" + nextUrl.searchParams.toString());
     },
     onError: (e) => {
@@ -228,12 +220,7 @@ export function ReserveWizard() {
     [slotsByDate],
   );
   const agendaTimesForSelectedDate = React.useMemo(() => getAgendaTimesForDate(selectedDateIso), [selectedDateIso]);
-  const normalizedCouponCode = React.useMemo(() => normalizeCouponCode(couponCode), [couponCode]);
-  const discountPercent = React.useMemo(() => getCouponDiscountPercent(normalizedCouponCode), [normalizedCouponCode]);
-  const discountPreview = React.useMemo(
-    () => applyDiscount(service?.base_price ?? 85_000, discountPercent),
-    [service?.base_price, discountPercent],
-  );
+  const displayAmountClp = service?.base_price ?? SITE_PRODUCT_PRICE_CLP;
   const plateTypographyClass =
     patent.length >= 8
       ? "text-4xl tracking-[0.12em]"
@@ -823,26 +810,12 @@ export function ReserveWizard() {
                         <p className="font-bold text-gray-800">{service?.name}</p>
                         <p className="text-xs text-gray-500">{commune?.name} • {selectedDateIso} • {normalizeSlotTime(selectedSlot.time)}</p>
                       </div>
-                      <span className="font-semibold">{formatClp(service!.base_price)}</span>
+                      <span className="font-semibold">{formatClp(displayAmountClp)}</span>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="coupon-code">¿Tienes un cupón de descuento? Ingrésalo acá.</Label>
-                      <Input
-                        id="coupon-code"
-                        value={couponCode}
-                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                        placeholder="Cupón de descuento"
-                      />
-                    </div>
-
-                    <div className="flex justify-between items-center text-sm text-gray-600">
-                      <span>Descuento</span>
-                      <span>{discountPercent > 0 ? `- ${formatClp(discountPreview.discountAmountClp)}` : formatClp(0)}</span>
-                    </div>
                     <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
                       <span className="font-bold text-lg">Total</span>
-                      <span className="font-black text-2xl text-primary">{formatClp(discountPreview.finalAmountClp)}</span>
+                      <span className="font-black text-2xl text-primary">{formatClp(displayAmountClp)}</span>
                     </div>
 
                     <Button

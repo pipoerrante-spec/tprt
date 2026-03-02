@@ -175,7 +175,7 @@ Respuesta:
       "service": {
         "id": "uuid",
         "name": "Revisión técnica inteligente",
-        "base_price": 85000
+        "base_price": 50
       },
       "commune": {
         "id": "uuid",
@@ -187,7 +187,7 @@ Respuesta:
         "booking_id": "uuid",
         "status": "paid",
         "provider": "transbank_webpay",
-        "amount_clp": 85000,
+        "amount_clp": 50,
         "currency": "CLP",
         "external_ref": "token",
         "created_at": "2026-03-01T22:01:00.000Z"
@@ -231,8 +231,15 @@ Respuesta:
 
 Los payloads entrantes quedan registrados en `public.webhooks_log` para luego procesarlos desde Supabase, Make, Zapier o una automatización propia.
 
+## Producción Transbank
+
+- Carga en Vercel: `TPRT_PAYMENTS_PROVIDER_ACTIVE=transbank_webpay`
+- Carga en Vercel: `TRANSBANK_ENV=production`
+- Carga en Vercel: `TRANSBANK_COMMERCE_CODE=<Tbk-Api-Key-Id / código de comercio>`
+- Carga en Vercel: `TRANSBANK_API_KEY=<Tbk-Api-Key-Secret productiva>`
+- El sitio expone un único producto de prueba visible por `CLP 50`, usable para la transacción real solicitada por Transbank.
+
 ## Próximos pasos sugeridos
 
-- Completar certificación Transbank con el comercio productivo y cargar credenciales de producción en Vercel
 - Admin UI real `/admin` + Supabase Auth + claim `app_metadata.is_admin`
 - Recordatorios (cron/queue) para email/SMS/WhatsApp

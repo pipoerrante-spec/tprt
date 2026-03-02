@@ -1,0 +1,21 @@
+{
+  "pageUrl": "https://tprt-525fwgasr-hhs-projects-ac833934.vercel.app/confirmacion/9bb1de2d-12a8-4694-a7eb-e5cb29e56cbc",
+  "payment": {
+    "status": "failed",
+    "external_ref": "01abc54739fce9e65de1eef72a54145245e2ba554a6f7d57c22c7414cc365917",
+    "authorization_code": "000000",
+    "card_last4": "0568",
+    "response_code": -1,
+    "payment_type_code": "VN",
+    "transbank_status": "FAILED",
+    "transbank_buy_order": "P4fe1bd17eb624e7eb78a2277a",
+    "transbank_session_id": "4fe1bd17-eb62-4e7e-b78a-2277adaf4e2e",
+    "transbank_vci": "TSN",
+    "transbank_transaction_date": "2026-03-01T23:11:50.504+00:00"
+  },
+  "paymentError": null,
+  "booking": {
+    "status": "canceled"
+  },
+  "bookingError": null
+}

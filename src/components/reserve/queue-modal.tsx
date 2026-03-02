@@ -9,6 +9,9 @@ interface QueueModalProps {
     onComplete: () => void;
 }
 
+const MAX_VISIBLE_QUEUE = 99;
+const MIN_START_POSITION = 8;
+
 function randomInt(min: number, max: number) {
     if (typeof window !== "undefined" && window.crypto?.getRandomValues) {
         const array = new Uint32Array(1);
@@ -20,6 +23,10 @@ function randomInt(min: number, max: number) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function clamp(value: number, min: number, max: number) {
+    return Math.min(max, Math.max(min, value));
+}
+
 export function QueueModal({ onComplete }: QueueModalProps) {
     const [progress, setProgress] = React.useState(0);
     const [position, setPosition] = React.useState(0);
@@ -29,8 +36,8 @@ export function QueueModal({ onComplete }: QueueModalProps) {
 
     React.useEffect(() => {
         // Randomize queue on mount
-        const startPos = randomInt(8, 96);
-        const total = startPos + randomInt(120, 2400);
+        const startPos = randomInt(MIN_START_POSITION, MAX_VISIBLE_QUEUE);
+        const total = randomInt(startPos, MAX_VISIBLE_QUEUE);
 
         setPosition(startPos);
         setTotalInQueue(total);
@@ -51,7 +58,7 @@ export function QueueModal({ onComplete }: QueueModalProps) {
 
                     setTotalInQueue((currentTotal) => {
                         const delta = randomInt(-12, 18);
-                        return Math.max(newPos + 8, currentTotal + delta);
+                        return clamp(currentTotal + delta, newPos, MAX_VISIBLE_QUEUE);
                     });
 
                     // Calculate exact progress percentage based on positions

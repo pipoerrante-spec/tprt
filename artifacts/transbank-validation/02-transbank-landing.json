@@ -1,0 +1,30 @@
+[
+  {
+    "index": 0,
+    "url": "https://webpay3gint.transbank.cl/webpayserver/init_transaction.cgi",
+    "items": [
+      {
+        "tag": "P",
+        "type": null,
+        "name": null,
+        "id": "",
+        "placeholder": null,
+        "value": null,
+        "text": "Ten en cuenta que ningún cargo fue realizado en tu tarjeta",
+        "href": null,
+        "class": "error-code"
+      },
+      {
+        "tag": "P",
+        "type": null,
+        "name": null,
+        "id": "",
+        "placeholder": null,
+        "value": null,
+        "text": "(Error 21)",
+        "href": null,
+        "class": "error-code"
+      }
+    ]
+  }
+]

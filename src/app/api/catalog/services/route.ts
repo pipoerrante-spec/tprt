@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { QA_SERVICE_PRICE_CLP } from "@/lib/pricing";
+import { SITE_PRODUCT_PRICE_CLP } from "@/lib/pricing";
 
 export const runtime = "nodejs";
 
@@ -22,7 +22,7 @@ export async function GET() {
   const mapped = (data ?? []).map((s) => ({
     ...s,
     name: toDisplayServiceName(s.name),
-    base_price: QA_SERVICE_PRICE_CLP,
+    base_price: SITE_PRODUCT_PRICE_CLP,
   }));
   const preferred = mapped.find((s) => s.name.toLowerCase() === "revisión técnica");
   const services = preferred ? [preferred] : mapped.slice(0, 1);

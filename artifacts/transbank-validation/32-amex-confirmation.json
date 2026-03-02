@@ -1,0 +1,198 @@
+{
+  "url": "https://tprt-nlv39xsyj-hhs-projects-ac833934.vercel.app/confirmacion/c47644f8-0082-4a05-9f03-6ef38301bc2a",
+  "frames": [
+    {
+      "index": 0,
+      "url": "https://tprt-nlv39xsyj-hhs-projects-ac833934.vercel.app/confirmacion/c47644f8-0082-4a05-9f03-6ef38301bc2a",
+      "items": [
+        {
+          "tag": "A",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "",
+          "href": "/",
+          "class": "flex items-center gap-3"
+        },
+        {
+          "tag": "A",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Inicio",
+          "href": "/",
+          "class": "hover:text-gray-200 transition-colors whitespace-nowrap"
+        },
+        {
+          "tag": "A",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Calendario",
+          "href": "/calendario",
+          "class": "hover:text-gray-200 transition-colors whitespace-nowrap"
+        },
+        {
+          "tag": "A",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Plantas",
+          "href": "/plantas",
+          "class": "hover:text-gray-200 transition-colors whitespace-nowrap"
+        },
+        {
+          "tag": "A",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Reservar hora",
+          "href": "/reservar",
+          "class": "hover:text-gray-200 transition-colors whitespace-nowrap"
+        },
+        {
+          "tag": "A",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Ayuda",
+          "href": "/ayuda",
+          "class": "hover:text-gray-200 transition-colors whitespace-nowrap"
+        },
+        {
+          "tag": "H3",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Estado de tu reserva",
+          "href": null,
+          "class": "text-lg font-semibold tracking-tight"
+        },
+        {
+          "tag": "P",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Guarda tu ID para soporte y seguimiento.",
+          "href": null,
+          "class": "text-sm text-muted-foreground"
+        },
+        {
+          "tag": "A",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Nueva reserva",
+          "href": "/reservar",
+          "class": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground shadow-sm hover:shadow-md hover:opacity-95 active:translate-y-px h-12 px-6 text-base"
+        },
+        {
+          "tag": "A",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Ayuda",
+          "href": "/ayuda",
+          "class": "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border border-border bg-transparent text-foreground hover:bg-accent/30 active:translate-y-px h-12 px-6 text-base"
+        },
+        {
+          "tag": "H3",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Información",
+          "href": null,
+          "class": "font-bold text-primary"
+        },
+        {
+          "tag": "A",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Calendario",
+          "href": "/calendario",
+          "class": "hover:underline"
+        },
+        {
+          "tag": "A",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Plantas",
+          "href": "/plantas",
+          "class": "hover:underline"
+        },
+        {
+          "tag": "A",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Términos y Condiciones",
+          "href": "/terminos",
+          "class": "hover:underline"
+        },
+        {
+          "tag": "H3",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Contacto",
+          "href": null,
+          "class": "font-bold text-primary"
+        },
+        {
+          "tag": "H3",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Importante",
+          "href": null,
+          "class": "font-bold text-primary"
+        },
+        {
+          "tag": "P",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Al contratar el servicio aceptas los Términos y Condiciones de GVRT Revisión Técnica.",
+          "href": null,
+          "class": "text-gray-600"
+        }
+      ]
+    }
+  ]
+}

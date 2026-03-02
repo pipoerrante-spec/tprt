@@ -1,0 +1,20 @@
+{
+  "payment": {
+    "status": "paid",
+    "external_ref": "01ab1c12cbdfaadfd76695474a5830c504653edcafbf5beaa69e9a6eba8e38aa",
+    "authorization_code": "1213",
+    "card_last4": "6623",
+    "response_code": 0,
+    "payment_type_code": "VN",
+    "transbank_status": "AUTHORIZED",
+    "transbank_buy_order": "Pc0ae8231c78a461eb5d2ae490",
+    "transbank_session_id": "c0ae8231-c78a-461e-b5d2-ae49076b952b",
+    "transbank_vci": "TSY",
+    "transbank_transaction_date": "2026-03-01T23:10:32.676+00:00"
+  },
+  "paymentError": null,
+  "booking": {
+    "status": "confirmed"
+  },
+  "bookingError": null
+}

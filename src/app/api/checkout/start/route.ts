@@ -17,7 +17,7 @@ import {
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getPaymentsProvider } from "@/lib/payments/provider";
 import {
-  QA_SERVICE_PRICE_CLP,
+  SITE_PRODUCT_PRICE_CLP,
   applyDiscount,
   getCouponDiscountPercent,
   normalizeCouponCode,
@@ -380,7 +380,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "checkout_failed" }, { status: 500 });
   }
 
-  const baseAmountClp = QA_SERVICE_PRICE_CLP;
+  const baseAmountClp = SITE_PRODUCT_PRICE_CLP;
   const couponCode = normalizeCouponCode(parsed.data.couponCode);
   const discountPercent = getCouponDiscountPercent(couponCode);
   if (couponCode && discountPercent <= 0) {

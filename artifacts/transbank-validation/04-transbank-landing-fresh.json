@@ -1,0 +1,280 @@
+{
+  "url": "https://webpay3gint.transbank.cl/webpayserver/dist/#/",
+  "frames": [
+    {
+      "index": 0,
+      "url": "https://webpay3gint.transbank.cl/webpayserver/dist/#/",
+      "items": [
+        {
+          "tag": "H3",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Estás pagando en:",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "H3",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Monto a pagar:",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "H3",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Selecciona tu medio de pago:",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "BUTTON",
+          "type": "button",
+          "name": null,
+          "id": "tarjetas",
+          "placeholder": null,
+          "value": null,
+          "text": "Tarjetas Crédito, Débito, Prepago",
+          "href": null,
+          "class": "payment-options__method-items-option"
+        },
+        {
+          "tag": "SPAN",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Crédito, Débito, Prepago",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "BUTTON",
+          "type": "button",
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Anular compra y volver",
+          "href": null,
+          "class": "btn-secondary btn-return"
+        },
+        {
+          "tag": "P",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Transacción respaldada por Transbank. Revisa las Políticas de Seguridad y Privacidad.",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "A",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Políticas de Seguridad y Privacidad",
+          "href": "https://www.transbank.cl/web/servicios-y-tarifas/politicas-de-seguridad-y-privacidad",
+          "class": null
+        },
+        {
+          "tag": "BUTTON",
+          "type": "button",
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "×",
+          "href": null,
+          "class": "modal__close"
+        },
+        {
+          "tag": "H3",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "WEBPAY REST SIMULTANEA",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "SPAN",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "WEBPAY REST SIMULTANEA",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "SPAN",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "$85.000",
+          "href": null,
+          "class": "amount"
+        },
+        {
+          "tag": "H3",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Pago total:",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "H3",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "$85.000",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "SPAN",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "$85.000",
+          "href": null,
+          "class": "currency"
+        },
+        {
+          "tag": "P",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Ningún cargo fue realizado en tu tarjeta, por favor intenta nuevamente.",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "BUTTON",
+          "type": "button",
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Intentar nuevamente",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "P",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Ningún cargo fue realizado en tu tarjeta. Cancelaremos esta transacción y se creará un reporte de seguridad.",
+          "href": null,
+          "class": "texto__modalFraude"
+        },
+        {
+          "tag": "A",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Reportar y cerrar",
+          "href": "javascript:void(0)",
+          "class": null
+        },
+        {
+          "tag": "A",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Volver",
+          "href": "javascript:void(0)",
+          "class": "volver"
+        },
+        {
+          "tag": "BUTTON",
+          "type": "button",
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Anular compra y volver",
+          "href": null,
+          "class": "btn-secondary btn-return"
+        },
+        {
+          "tag": "P",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "La inscripción no se pudo llevar a cabo. Por favor, inténtalo nuevamente para completar el proceso.",
+          "href": null,
+          "class": "inscripcionParrafo"
+        },
+        {
+          "tag": "BUTTON",
+          "type": "button",
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "Intentar nuevamente",
+          "href": null,
+          "class": null
+        },
+        {
+          "tag": "P",
+          "type": null,
+          "name": null,
+          "id": "",
+          "placeholder": null,
+          "value": null,
+          "text": "(Error )",
+          "href": null,
+          "class": "inscripcionCodigoError"
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "url": "https://www.googletagmanager.com/ns.html?id=GTM-TN4XMW5",
+      "items": []
+    }
+  ]
+}

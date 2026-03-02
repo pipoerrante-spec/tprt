@@ -1,0 +1,23 @@
+{
+  "hold": {
+    "status": 201,
+    "data": {
+      "holdId": "9cf2e2e1-c21a-4639-8595-2a61a819094d",
+      "expiresAt": "2026-03-01T23:11:17.474994+00:00"
+    }
+  },
+  "checkout": {
+    "status": 200,
+    "data": {
+      "bookingId": "915fff40-96cc-4445-8654-50fd76463c47",
+      "paymentId": "69d30b2d-2b1e-422e-885b-31061bbf4d3f",
+      "provider": "transbank_webpay",
+      "redirectUrl": "/pago/webpay?token_ws=01ab6fb675137f7610c993b536dcd594cefb326a9a636861d800f353563c8f71&url=https%3A%2F%2Fwebpay3gint.transbank.cl%2Fwebpayserver%2FinitTransaction",
+      "amountClp": 85000,
+      "baseAmountClp": 85000,
+      "discountAmountClp": 0,
+      "discountPercent": 0,
+      "couponCode": null
+    }
+  }
+}
