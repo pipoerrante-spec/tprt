@@ -1,6 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
-type PhaseSource = "checkout" | "transbank" | "mercadopago" | "mock" | "system";
+type PhaseSource = "checkout" | "transbank" | "mercadopago" | "mock" | "operations" | "system";
 
 export async function trackBookingPhase(input: {
   bookingId: string;

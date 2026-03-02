@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { isAllowedAgendaTime, isWithinTemporarySingleOperatorWindow, TEMP_SINGLE_OPERATOR_CAPACITY } from "@/lib/availability-window";
+import { isAllowedAgendaTime, isPastAgendaTime, isWithinTemporarySingleOperatorWindow, TEMP_SINGLE_OPERATOR_CAPACITY } from "@/lib/availability-window";
 import { ensureDemoCoverageAndRules } from "@/lib/demo/availability";
 import { getEnv } from "@/lib/env";
+import { getAgendaReleaseStateMap, isSlotReleased } from "@/lib/ops-agenda";
 import { getRequestIp, rateLimit } from "@/lib/rate-limit";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
@@ -104,7 +105,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "slot_not_available" }, { status: 409 });
   }
 
+  if (isPastAgendaTime(parsed.data.date, normalizedTime)) {
+    return NextResponse.json({ error: "slot_not_available" }, { status: 409 });
+  }
+
   if (isWithinTemporarySingleOperatorWindow(parsed.data.date)) {
+    const releaseStateMap = await getAgendaReleaseStateMap([parsed.data.date]);
+    if (!isSlotReleased(parsed.data.date, normalizedTime, releaseStateMap.get(parsed.data.date))) {
+      return NextResponse.json({ error: "slot_not_available" }, { status: 409 });
+    }
     const current = await countTemporaryWindowReservations(supabase, {
       serviceId: parsed.data.serviceId,
       communeId: parsed.data.communeId,

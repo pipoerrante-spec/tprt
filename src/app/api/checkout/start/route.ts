@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { isAllowedAgendaTime, isWithinTemporarySingleOperatorWindow, TEMP_SINGLE_OPERATOR_CAPACITY } from "@/lib/availability-window";
+import { isAllowedAgendaTime, isPastAgendaTime, isWithinTemporarySingleOperatorWindow, TEMP_SINGLE_OPERATOR_CAPACITY } from "@/lib/availability-window";
 import { trackBookingPhase } from "@/lib/bookings/phases";
 import { getEnv } from "@/lib/env";
 import { getRequestOrigin } from "@/lib/http";
@@ -23,6 +23,7 @@ import {
   getCouponDiscountPercent,
   normalizeCouponCode,
 } from "@/lib/pricing";
+import { getAgendaReleaseStateMap, isSlotReleased } from "@/lib/ops-agenda";
 
 export const runtime = "nodejs";
 
@@ -267,6 +268,13 @@ export async function POST(req: Request) {
 
   if (holdRow && isWithinTemporarySingleOperatorWindow(holdRow.date)) {
     if (!isAllowedAgendaTime(holdRow.date, holdRow.time)) {
+      return NextResponse.json({ error: "slot_not_available" }, { status: 409 });
+    }
+    if (isPastAgendaTime(holdRow.date, holdRow.time)) {
+      return NextResponse.json({ error: "slot_not_available" }, { status: 409 });
+    }
+    const releaseStateMap = await getAgendaReleaseStateMap([holdRow.date]);
+    if (!isSlotReleased(holdRow.date, holdRow.time, releaseStateMap.get(holdRow.date))) {
       return NextResponse.json({ error: "slot_not_available" }, { status: 409 });
     }
 
