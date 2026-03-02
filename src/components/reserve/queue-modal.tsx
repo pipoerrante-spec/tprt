@@ -93,17 +93,17 @@ export function QueueModal({ onComplete }: QueueModalProps) {
                 className="w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden"
             >
                 {/* Header with brand mark */}
-                <div className="bg-primary px-6 py-4 flex items-center justify-between">
-                    <div className="relative h-10 w-28 overflow-visible sm:h-12 sm:w-32">
+                <div className="flex items-center justify-between border-b border-sky-100 bg-sky-50 px-6 py-5">
+                    <div className="relative h-14 w-40 overflow-visible sm:h-16 sm:w-44">
                         <Image
                             src="/pug.svg"
                             alt="GVRT"
                             fill
-                            className="origin-left object-contain object-left scale-[1.45] sm:scale-[1.6]"
+                            className="origin-left object-contain object-left scale-[1.65] sm:scale-[1.8]"
                             priority
                         />
                     </div>
-                    <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></div>
+                    <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse"></div>
                 </div>
 
                 <div className="p-8 text-center space-y-6">
