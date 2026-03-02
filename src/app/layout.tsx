@@ -22,6 +22,14 @@ export const metadata: Metadata = {
   title: "GVRT Revisión Técnica",
   description:
     "Gestión de revisión técnica vehicular con retiro, traslado y entrega a domicilio.",
+  icons: {
+    icon: [
+      { url: "/pug.svg", type: "image/svg+xml" },
+      { url: "/pug.png", type: "image/png" },
+    ],
+    shortcut: "/pug.svg",
+    apple: "/pug.png",
+  },
 };
 
 export default function RootLayout({
