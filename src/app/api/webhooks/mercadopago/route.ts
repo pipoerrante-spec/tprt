@@ -39,7 +39,7 @@ async function handle(req: Request) {
   const client = new MercadoPagoConfig({ accessToken: env.MERCADOPAGO_ACCESS_TOKEN });
   const paymentApi = new Payment(client);
 
-  const payment = (await paymentApi.get({ id: mpPaymentId })) as Record<string, unknown>;
+  const payment = (await paymentApi.get({ id: mpPaymentId })) as unknown as Record<string, unknown>;
   const status = String(payment.status ?? "");
   const externalReference = String(payment.external_reference ?? "");
 
