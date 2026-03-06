@@ -134,6 +134,14 @@ o:
 x-tprt-token: TU_TOKEN
 ```
 
+o:
+
+```http
+x-api-key: TU_TOKEN
+```
+
+Tambien se acepta `?token=TU_TOKEN` (util para pruebas rapidas en navegador o herramientas que no permiten headers personalizados).
+
 ### Consumir reservas
 
 ```bash
@@ -230,6 +238,22 @@ Respuesta:
 ```
 
 Los payloads entrantes quedan registrados en `public.webhooks_log` para luego procesarlos desde Supabase, Make, Zapier o una automatización propia.
+
+## Taggeo Google (GTM/GA4)
+
+1. Crea o usa tu contenedor en Google Tag Manager (ejemplo: `GTM-ABC1234`).
+2. Define la variable en Vercel:
+   - `NEXT_PUBLIC_GTM_ID=GTM-ABC1234`
+3. Redeploy del proyecto.
+4. Verifica en navegador:
+   - Debe cargar `https://www.googletagmanager.com/gtm.js?id=GTM-ABC1234`
+   - En Tag Assistant debe verse el contenedor activo.
+5. Configura en GTM tus tags GA4 y publica.
+
+Eventos ya enviados por la app:
+- `begin_checkout` al abrir checkout con datos de servicio.
+- `add_payment_info` cuando el usuario inicia pago.
+- `purchase` cuando confirmacion detecta pago `paid`.
 
 ## Producción Transbank
 

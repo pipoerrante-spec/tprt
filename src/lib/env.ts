@@ -2,6 +2,11 @@ import { z } from "zod";
 
 const envSchema = z.object({
   NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
+  NEXT_PUBLIC_GTM_ID: z
+    .string()
+    .trim()
+    .optional()
+    .refine((value) => !value || /^GTM-[A-Z0-9]+$/.test(value), "NEXT_PUBLIC_GTM_ID must look like GTM-XXXXXXX"),
 
   SUPABASE_URL: z.string().url(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(20),

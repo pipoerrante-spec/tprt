@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { sendGTMEvent } from "@next/third-parties/google";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -57,6 +58,7 @@ const formSchema = z.object({
   address: z.string().trim().min(5, "Ingresa una dirección").max(160),
   notes: z.string().trim().max(500).optional(),
   couponCode: z.string().trim().max(32).optional(),
+  consentTerms: z.boolean().refine((v) => v === true, "Debes aceptar los términos y condiciones"),
   consentPrivacy: z.boolean().refine((v) => v === true, "Debes aceptar la política de privacidad"),
   provider: z.literal("transbank_webpay"),
 });
@@ -100,6 +102,7 @@ export function CheckoutClient({
       address: "",
       notes: "",
       couponCode: normalizedInitialCoupon ?? "",
+      consentTerms: false,
       consentPrivacy: false,
       provider: "transbank_webpay",
     },
@@ -179,10 +182,12 @@ export function CheckoutClient({
     return () => sub.unsubscribe();
   }, [form]);
 
+  const consentTerms = useWatch({ control: form.control, name: "consentTerms" });
   const consentPrivacy = useWatch({ control: form.control, name: "consentPrivacy" });
   const vehiclePlate = useWatch({ control: form.control, name: "vehiclePlate" });
   const couponCode = useWatch({ control: form.control, name: "couponCode" });
   const lastLookupPlateRef = React.useRef<string>("");
+  const checkoutTrackedRef = React.useRef(false);
 
   const vehicleLookup = useMutation({
     mutationFn: async (plate: string) =>
@@ -272,6 +277,21 @@ export function CheckoutClient({
       });
     },
     onSuccess: (data) => {
+      sendGTMEvent({
+        event: "add_payment_info",
+        payment_type: "webpay",
+        value: data.amountClp,
+        currency: "CLP",
+        coupon: data.couponCode ?? undefined,
+        items: [
+          {
+            item_id: service?.id ?? "gvrt-service",
+            item_name: service?.name ?? "Revision tecnica",
+            price: data.amountClp,
+            quantity: 1,
+          },
+        ],
+      });
       toast.success(data.redirectUrl.startsWith("/confirmacion/") ? "Reserva confirmada." : "Redirigiendo a Webpay…");
       window.location.href = data.redirectUrl;
     },
@@ -299,6 +319,25 @@ export function CheckoutClient({
   const normalizedCouponCode = normalizeCouponCode(couponCode);
   const previewDiscountPercent = couponEnabled ? getCouponDiscountPercent(normalizedCouponCode) : 0;
   const previewAmounts = applyDiscount(baseAmountClp, previewDiscountPercent);
+
+  React.useEffect(() => {
+    if (!holdRow || !service || checkoutTrackedRef.current) return;
+    checkoutTrackedRef.current = true;
+    sendGTMEvent({
+      event: "begin_checkout",
+      value: previewAmounts.finalAmountClp,
+      currency: "CLP",
+      coupon: normalizedCouponCode ?? undefined,
+      items: [
+        {
+          item_id: service.id,
+          item_name: service.name,
+          price: previewAmounts.finalAmountClp,
+          quantity: 1,
+        },
+      ],
+    });
+  }, [holdRow, normalizedCouponCode, previewAmounts.finalAmountClp, service]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -485,11 +524,37 @@ export function CheckoutClient({
             <div className="space-y-4">
               <div className="flex items-start gap-3">
                 <Checkbox
+                  id="consentTerms"
+                  checked={consentTerms}
+                  onCheckedChange={(v) => form.setValue("consentTerms", v === true, { shouldValidate: true })}
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="consentTerms" className="text-sm font-medium cursor-pointer">
+                    Acepto términos y condiciones
+                  </Label>
+                  <div className="text-xs text-muted-foreground">
+                    Revisa los{" "}
+                    <Link href="/terminos" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+                      términos y condiciones
+                    </Link>{" "}
+                    antes de pagar.
+                  </div>
+                  {form.formState.errors.consentTerms ? (
+                    <div className="text-xs text-rose-200">{form.formState.errors.consentTerms.message}</div>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="consentPrivacy"
                   checked={consentPrivacy}
                   onCheckedChange={(v) => form.setValue("consentPrivacy", v === true, { shouldValidate: true })}
                 />
                 <div className="space-y-1">
-                  <div className="text-sm font-medium">Acepto política de privacidad</div>
+                  <Label htmlFor="consentPrivacy" className="text-sm font-medium cursor-pointer">
+                    Acepto política de privacidad
+                  </Label>
                   <div className="text-xs text-muted-foreground">
                     Usaremos tus datos solo para gestionar tu reserva, enviar confirmación y soporte.
                   </div>

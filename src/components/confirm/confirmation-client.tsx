@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import * as React from "react";
+import { sendGTMEvent } from "@next/third-parties/google";
 import { useQuery } from "@tanstack/react-query";
 import { apiJson } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +21,7 @@ function statusBadge(status: BookingConfirmationResponse["booking"]["status"], p
 }
 
 export function ConfirmationClient({ bookingId, initialData }: { bookingId: string; initialData?: BookingConfirmationResponse | null }) {
+  const purchaseTrackedRef = React.useRef(false);
   const booking = useQuery({
     queryKey: ["booking", bookingId],
     queryFn: () => apiJson<BookingConfirmationResponse>(`/api/bookings/${encodeURIComponent(bookingId)}`),
@@ -28,6 +31,33 @@ export function ConfirmationClient({ bookingId, initialData }: { bookingId: stri
 
   const data = booking.data;
   const badge = data ? statusBadge(data.booking.status, data.payment) : null;
+
+  React.useEffect(() => {
+    if (!data || !data.payment || data.payment.status !== "paid" || purchaseTrackedRef.current) return;
+    const paymentKey = `gvrt_purchase_sent_${data.payment.id}`;
+    if (typeof window !== "undefined" && window.sessionStorage.getItem(paymentKey) === "1") {
+      purchaseTrackedRef.current = true;
+      return;
+    }
+
+    sendGTMEvent({
+      event: "purchase",
+      transaction_id: data.payment.id,
+      value: data.payment.amount_clp,
+      currency: "CLP",
+      items: [
+        {
+          item_id: data.booking.service?.id ?? "gvrt-service",
+          item_name: data.booking.service?.name ?? "Revision tecnica",
+          price: data.payment.amount_clp,
+          quantity: 1,
+        },
+      ],
+    });
+
+    if (typeof window !== "undefined") window.sessionStorage.setItem(paymentKey, "1");
+    purchaseTrackedRef.current = true;
+  }, [data]);
 
   return (
     <div className="space-y-6">

@@ -7,6 +7,7 @@ import { Providers } from "@/app/providers";
 import { Toaster } from "@/components/ui/sonner";
 import { SiteFooter } from "@/components/site/footer";
 import { SiteNav } from "@/components/site/nav";
+import { GoogleTagManager } from "@next/third-parties/google";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,11 +38,14 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const gtmId = process.env.NEXT_PUBLIC_GTM_ID?.trim();
+
   return (
     <html lang="es-CL">
       <body
         className={`${geistSans.variable} ${geistMono.variable} min-h-dvh antialiased bg-white text-black`}
       >
+        {gtmId ? <GoogleTagManager gtmId={gtmId} /> : null}
         <Providers>
           <div className="relative min-h-dvh flex flex-col bg-white">
             <SiteNav />

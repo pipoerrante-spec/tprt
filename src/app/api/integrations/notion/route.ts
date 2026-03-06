@@ -4,6 +4,11 @@ import { getEnv } from "@/lib/env";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Authorization, Content-Type, x-tprt-token, x-api-key",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+} as const;
 
 const bookingStatusSchema = z.enum(["pending_payment", "confirmed", "canceled"]);
 
@@ -26,25 +31,37 @@ const postBodySchema = z.object({
 });
 
 function getAccessToken(req: Request) {
+  const url = new URL(req.url);
+  const queryToken = url.searchParams.get("token")?.trim();
   const authHeader = req.headers.get("authorization") || "";
   if (authHeader.toLowerCase().startsWith("bearer ")) {
     return authHeader.slice(7).trim();
   }
-  return req.headers.get("x-tprt-token")?.trim() || "";
+  return req.headers.get("x-tprt-token")?.trim() || req.headers.get("x-api-key")?.trim() || queryToken || "";
 }
 
 function assertAuthorized(req: Request) {
   const env = getEnv();
   if (!env.TPRT_EXTERNAL_API_TOKEN) {
-    return NextResponse.json({ error: "external_api_not_configured" }, { status: 503 });
+    return NextResponse.json({ error: "external_api_not_configured" }, { status: 503, headers: CORS_HEADERS });
   }
 
   const token = getAccessToken(req);
   if (!token || token !== env.TPRT_EXTERNAL_API_TOKEN) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    return NextResponse.json(
+      {
+        error: "unauthorized",
+        hint: "use Authorization: Bearer <token>, x-tprt-token, x-api-key or ?token=<token>",
+      },
+      { status: 401, headers: CORS_HEADERS },
+    );
   }
 
   return null;
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
 }
 
 export async function GET(req: Request) {
@@ -60,7 +77,7 @@ export async function GET(req: Request) {
     limit: url.searchParams.get("limit") || undefined,
   });
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_request", details: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: "invalid_request", details: parsed.error.flatten() }, { status: 400, headers: CORS_HEADERS });
   }
 
   const supabase = getSupabaseAdmin();
@@ -79,7 +96,7 @@ export async function GET(req: Request) {
 
   const bookings = await query;
   if (bookings.error) {
-    return NextResponse.json({ error: "bookings_unavailable" }, { status: 500 });
+    return NextResponse.json({ error: "bookings_unavailable" }, { status: 500, headers: CORS_HEADERS });
   }
 
   const bookingRows = bookings.data ?? [];
@@ -104,7 +121,7 @@ export async function GET(req: Request) {
   ]);
 
   if (services.error || communes.error || payments.error) {
-    return NextResponse.json({ error: "related_data_unavailable" }, { status: 500 });
+    return NextResponse.json({ error: "related_data_unavailable" }, { status: 500, headers: CORS_HEADERS });
   }
 
   const serviceMap = new Map((services.data ?? []).map((row) => [row.id, row]));
@@ -141,7 +158,7 @@ export async function GET(req: Request) {
       })),
       count: bookingRows.length,
     },
-    { status: 200, headers: { "Cache-Control": "no-store" } },
+    { status: 200, headers: { ...CORS_HEADERS, "Cache-Control": "no-store" } },
   );
 }
 
@@ -152,7 +169,7 @@ export async function POST(req: Request) {
   const json = await req.json().catch(() => null);
   const parsed = postBodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "invalid_request", details: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: "invalid_request", details: parsed.error.flatten() }, { status: 400, headers: CORS_HEADERS });
   }
 
   const supabase = getSupabaseAdmin();
@@ -175,7 +192,7 @@ export async function POST(req: Request) {
     .single();
 
   if (logInsert.error || !logInsert.data) {
-    return NextResponse.json({ error: "webhook_log_failed" }, { status: 500 });
+    return NextResponse.json({ error: "webhook_log_failed" }, { status: 500, headers: CORS_HEADERS });
   }
 
   return NextResponse.json(
@@ -184,6 +201,6 @@ export async function POST(req: Request) {
       webhookId: logInsert.data.id,
       receivedAt: logInsert.data.created_at,
     },
-    { status: 202 },
+    { status: 202, headers: CORS_HEADERS },
   );
 }
