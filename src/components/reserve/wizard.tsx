@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { getAgendaTimesForDate, isWithinTemporarySingleOperatorWindow, TEMP_SINGLE_OPERATOR_CAPACITY } from "@/lib/availability-window";
+import { getAgendaTimesForDate, isWithinTemporarySingleOperatorWindow } from "@/lib/availability-window";
 import { apiJson, ApiError } from "@/lib/api";
 import { addDaysIso, getSantiagoTodayIso, isoDateToLocalNoon, toIsoDate } from "@/lib/time";
 import { Button } from "@/components/ui/button";
@@ -54,27 +54,12 @@ type Slot = {
 
 type Step = "queue" | "service" | "commune" | "calendar" | "details";
 
-const INITIAL_DRIVER_CAPACITY = 3;
-
 function formatClp(amount: number) {
   return new Intl.NumberFormat("es-CL", {
     style: "currency",
     currency: "CLP",
     maximumFractionDigits: 0,
   }).format(amount);
-}
-
-function buildDemoSlotsForDate(dateIso: string): Slot[] {
-  const capacity = isWithinTemporarySingleOperatorWindow(dateIso) ? TEMP_SINGLE_OPERATOR_CAPACITY : INITIAL_DRIVER_CAPACITY;
-  return getAgendaTimesForDate(dateIso).map((time) => ({
-    date: dateIso,
-    time: `${time}:00`,
-    capacity,
-    reserved: 0,
-    remaining: capacity,
-    demand: "low",
-    available: true,
-  }));
 }
 
 function normalizeSlotTime(time: string) {
@@ -207,11 +192,6 @@ export function ReserveWizard() {
   const slotsForDay = React.useMemo(
     () => alignSlotsToAgenda(selectedDateIso, slotsByDate.get(selectedDateIso) ?? []),
     [selectedDateIso, slotsByDate],
-  );
-  const showClientDemoSlots = !availability.isLoading && slotsForDay.length === 0;
-  const visibleSlots = React.useMemo(
-    () => (showClientDemoSlots ? buildDemoSlotsForDate(selectedDateIso) : slotsForDay),
-    [showClientDemoSlots, selectedDateIso, slotsForDay],
   );
   const availableDates = React.useMemo(
     () =>
@@ -601,15 +581,9 @@ export function ReserveWizard() {
             <div className="lg:col-span-7 space-y-4">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-bold text-lg">Bloques Disponibles</h3>
-                {showClientDemoSlots ? (
-                  <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-1 rounded-full">
-                    ● Horarios demo
-                  </span>
-                ) : (
-                  <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full animate-pulse">
-                    ● En tiempo real
-                  </span>
-                )}
+                <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full animate-pulse">
+                  ● En tiempo real
+                </span>
               </div>
 
               <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-semibold text-orange-900">
@@ -621,12 +595,12 @@ export function ReserveWizard() {
                   <div className="col-span-full rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
                     Cargando horarios disponibles...
                   </div>
-                ) : visibleSlots.length === 0 ? (
+                ) : slotsForDay.length === 0 ? (
                   <div className="col-span-full rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600">
                     No hay horarios para este día.
                   </div>
                 ) : (
-                  visibleSlots.map((s) => (
+                  slotsForDay.map((s) => (
                     <button
                       key={s.time}
                       disabled={!s.available}
