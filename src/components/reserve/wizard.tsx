@@ -16,7 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Clock, CreditCard, MapPin, ScanLine, Search, ShieldCheck } from "lucide-react";
-import { QueueModal } from "./queue-modal";
 import { UrgencyTimer } from "./urgency-timer";
 import { Label } from "@/components/ui/label";
 import { GVRT_TERMS_SECTIONS } from "@/lib/legal/terms";
@@ -52,7 +51,7 @@ type Slot = {
   available: boolean;
 };
 
-type Step = "queue" | "service" | "commune" | "calendar" | "details";
+type Step = "service" | "commune" | "calendar" | "details";
 
 function formatClp(amount: number) {
   return new Intl.NumberFormat("es-CL", {
@@ -77,7 +76,7 @@ function isValidEmail(input: string) {
 
 export function ReserveWizard() {
   const router = useRouter();
-  const [step, setStep] = React.useState<Step>("queue");
+  const [step, setStep] = React.useState<Step>("service");
   const [service, setService] = React.useState<Service | null>(null);
   const [commune, setCommune] = React.useState<Commune | null>(null);
   const dateFrom = React.useMemo(() => getSantiagoTodayIso(), []);
@@ -122,7 +121,7 @@ export function ReserveWizard() {
   });
 
   const availability = useQuery({
-    enabled: !!service && !!commune && step !== "queue",
+    enabled: !!service && !!commune,
     queryKey: ["availability", service?.id, commune?.id, dateFrom, dateTo],
     queryFn: () =>
       apiJson<{ slots: Slot[] }>(
@@ -161,7 +160,7 @@ export function ReserveWizard() {
         );
         window.localStorage.setItem(HOLD_STORAGE_KEY, data.holdId);
       }
-      const nextUrl = new URL("/carrito", window.location.origin);
+      const nextUrl = new URL("/checkout", window.location.origin);
       nextUrl.searchParams.set("holdId", data.holdId);
       if (normalizedCoupon) nextUrl.searchParams.set("coupon", normalizedCoupon);
       router.push(nextUrl.pathname + "?" + nextUrl.searchParams.toString());
@@ -258,11 +257,6 @@ export function ReserveWizard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patent]);
 
-  // Handler for Queue Completion
-  const handleQueueComplete = () => {
-    setStep("service");
-  };
-
   const moveToCommuneStep = React.useCallback((selectedService: Service) => {
     setService(selectedService);
     setCommune(null);
@@ -335,10 +329,6 @@ export function ReserveWizard() {
     createHold.mutate({ date: selectedSlot.date, time: normalizeSlotTime(selectedSlot.time) });
   };
 
-  if (step === "queue") {
-    return <QueueModal onComplete={handleQueueComplete} />;
-  }
-
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
 
@@ -362,7 +352,7 @@ export function ReserveWizard() {
           <div className="h-0.5 w-8 bg-gray-200"></div>
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-full flex items-center justify-center border-2 border-gray-200">4</div>
-            <span>Pago</span>
+            <span>Formulario</span>
           </div>
         </div>
       )}
@@ -647,7 +637,7 @@ export function ReserveWizard() {
                 <Card className="border-0 shadow-md">
                   <CardHeader>
                     <CardTitle>Datos del Vehículo</CardTitle>
-                    <CardDescription>Completa aquí todo el formulario. En checkout solo confirmas y pagas.</CardDescription>
+                    <CardDescription>Completa aquí el formulario. Al continuar pasarás directo al pago.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {/* Patente Visual */}
@@ -830,7 +820,7 @@ export function ReserveWizard() {
                       onClick={handleConfirmAndPay}
                       disabled={createHold.isPending}
                     >
-                      {createHold.isPending ? "Procesando..." : "Confirmar y Pagar"}
+                      {createHold.isPending ? "Procesando..." : "Continuar al pago"}
                     </Button>
                   </CardContent>
                   <div className="px-6 pb-6 pt-2 text-center">

@@ -298,13 +298,13 @@ export function CheckoutClient({
     onError: (e) => {
       const code = e instanceof ApiError ? e.code : e instanceof Error ? e.message : "checkout_failed";
       if (code === "hold_not_active" || code === "hold_not_found" || code === "hold_unavailable") {
-        toast.error("Tu bloqueo ya no está disponible. Vuelve al carrito y genera un nuevo cupo.");
+        toast.error("Tu bloqueo ya no está disponible. Vuelve a reservar y genera un nuevo cupo.");
       }
       else if (code === "slot_full") {
         toast.error("Ese horario se llenó mientras avanzabas. Elige otro cupo para continuar.");
       }
       else if (code === "slot_not_available") {
-        toast.error("Ese horario ya no está disponible. Vuelve al carrito y selecciona otro.");
+        toast.error("Ese horario ya no está disponible. Vuelve a reservar y selecciona otro.");
       }
       else if (code === "invalid_coupon") toast.error("Cupón inválido. Usa un código válido.");
       else if (code.includes("not_implemented") || code.includes("not_configured")) {
@@ -389,11 +389,11 @@ export function CheckoutClient({
             <Skeleton className="h-20" />
           ) : !holdRow && hold.isError ? (
             <div className="text-sm text-muted-foreground">
-              No pudimos cargar el hold. Vuelve al carrito y refresca para continuar con el pago.
+              No pudimos cargar tu reserva. Vuelve a reservar para continuar con el pago.
             </div>
           ) : !holdRow ? (
             <div className="text-sm text-muted-foreground">
-              Hold no encontrado. Vuelve al carrito para regenerar el bloqueo antes de pagar.
+              Reserva no encontrada. Vuelve a reservar para regenerar el bloqueo antes de pagar.
             </div>
           ) : (
             <div className="grid gap-3 rounded-2xl border border-border/60 bg-background/30 p-4 sm:grid-cols-2">
@@ -587,15 +587,9 @@ export function CheckoutClient({
               <Button
                 variant="outline"
                 type="button"
-                onClick={() =>
-                  router.push(
-                    couponEnabled && normalizedCouponCode
-                      ? `/carrito?holdId=${effectiveHoldId}&coupon=${encodeURIComponent(normalizedCouponCode)}`
-                      : `/carrito?holdId=${effectiveHoldId}`,
-                  )
-                }
+                onClick={() => router.push("/reservar")}
               >
-                Volver al carrito
+                Volver a reservar
               </Button>
               <Button
                 size="lg"

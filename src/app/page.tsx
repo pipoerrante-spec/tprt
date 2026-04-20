@@ -2,9 +2,41 @@ import Link from "next/link";
 import { MainCarousel } from "@/components/main-carousel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Calendar, FileText, Search, BarChart3, CheckCircle } from "lucide-react";
+import { MapPin, Calendar, FileText, Search, BarChart3, CheckCircle, AlertTriangle, CarFront, FileBadge2 } from "lucide-react";
 import { getChileMonthIndex, REVISION_CALENDAR } from "@/lib/revision-calendar";
 import { VehicleStatusWidget } from "@/components/vehicle/vehicle-status-widget";
+
+const INFO_SECTIONS = [
+  {
+    icon: CarFront,
+    title: "¿Cómo funciona?",
+    paragraphs: [
+      "Retiramos tu vehículo en la dirección que indiques, gestionamos la revisión técnica y lo devolvemos en tu domicilio una vez finalizado el proceso.",
+      "Para realizar el retiro, es necesario que cuentes con un estacionamiento disponible, donde el conductor pueda dejar su vehículo al momento de retirar el tuyo.",
+    ],
+  },
+  {
+    icon: FileBadge2,
+    title: "¿Qué documentos necesito?",
+    paragraphs: ["Para realizar la gestión de tu revisión técnica, debes contar con:"],
+    items: [
+      "Permiso de circulación vigente",
+      "Padrón del vehículo",
+      "SOAP vigente",
+      "Revisión técnica anterior o certificado de homologación (según corresponda)",
+    ],
+    footer: "Asegúrate de tener estos documentos disponibles al momento del retiro.",
+  },
+  {
+    icon: AlertTriangle,
+    title: "¿Qué pasa si mi vehículo es rechazado?",
+    paragraphs: [
+      "Si tu vehículo es rechazado por motivos simples, como luces o grabado de patente, el conductor podrá ayudarte a gestionar la solución en el momento. En este caso, se te enviará un link de pago por el costo del servicio adicional solicitado.",
+      "Si el rechazo se debe a otros motivos, podrás solicitar una segunda gestión con un 50% de descuento sobre el valor original, una vez realizadas las reparaciones necesarias.",
+    ],
+    footer: "Recuerda que la aprobación de la revisión técnica depende del estado general y mantención de tu vehículo.",
+  },
+];
 
 export default function HomePage() {
   const currentCalendarRow = REVISION_CALENDAR[getChileMonthIndex()];
@@ -96,6 +128,53 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+
+          <section className="space-y-5">
+            <div className="flex items-end justify-between gap-4 border-b border-gray-300 pb-3">
+              <div>
+                <h3 className="text-xl font-bold text-gray-700 uppercase tracking-wide">Información Importante</h3>
+                <p className="mt-1 text-sm text-gray-500">Todo lo que conviene revisar antes de reservar tu retiro.</p>
+              </div>
+              <Button asChild variant="outline" className="hidden sm:inline-flex">
+                <Link href="/ayuda">Ver ayuda completa</Link>
+              </Button>
+            </div>
+
+            <div className="grid gap-5 lg:grid-cols-3">
+              {INFO_SECTIONS.map(({ icon: Icon, title, paragraphs, items, footer }) => (
+                <Card key={title} className="border-0 bg-white shadow-sm ring-1 ring-gray-200">
+                  <CardContent className="space-y-4 p-6">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <h4 className="text-lg font-bold text-gray-800">{title}</h4>
+                    </div>
+
+                    <div className="space-y-3 text-sm leading-6 text-gray-600">
+                      {paragraphs.map((paragraph) => (
+                        <p key={paragraph}>{paragraph}</p>
+                      ))}
+                      {items ? (
+                        <ul className="space-y-2 pl-5 text-gray-700 list-disc">
+                          {items.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      {footer ? <p className="font-medium text-gray-700">{footer}</p> : null}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div className="sm:hidden">
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/ayuda">Ver ayuda completa</Link>
+              </Button>
+            </div>
+          </section>
 
           {/* 4. Services Grid (Legacy Cards) - Rearranged with New Copy */}
           <section>
